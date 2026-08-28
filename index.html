@@ -253,6 +253,7 @@ dialog img{width:100%;height:auto;border-radius:14px;display:block}
   var LIMIT = 140;
 
   var ns = null, mode = 'pending', root = null, editing = null, timer = null;
+  var lastSaved = JSON.stringify(state);
   var media = {};
   var tab = 'plan';
   try { tab = sessionStorage.getItem('biwakara-tab') || 'plan'; } catch (e) {}
@@ -623,10 +624,14 @@ dialog img{width:100%;height:auto;border-radius:14px;display:block}
   }
   function flush() {
     timer = null;
+    var snap = JSON.stringify(state);
+    if (snap === lastSaved) { return; }   /* 変化がなければ何もしない */
+    lastSaved = snap;
     if (ns) {
       ns.publish(docSource(state)).catch(function (err) {
         var code = err && err.code;
-        if (code === 'conflict' || code === 'rate_limited') { return; }
+        if (code === 'rate_limited') { lastSaved = ''; return; }
+        if (code === 'conflict') { return; }
         if (code === 'not_writer' || code === 'not_granted' ||
             code === 'not_declared' || code === 'capability_disabled') {
           ns = null; mode = 'local'; render();
@@ -680,6 +685,7 @@ dialog img{width:100%;height:auto;border-radius:14px;display:block}
     }
     var dk = t.getAttribute && t.getAttribute('data-date');
     if (dk) {
+      if (t.value === dateOf(dk)) { return; }
       if (!state.dates) { state.dates = {}; }
       if (t.value) { state.dates[dk] = t.value; } else { delete state.dates[dk]; }
       render(); flush(); return;
@@ -774,7 +780,7 @@ dialog img{width:100%;height:auto;border-radius:14px;display:block}
     if (!ns) {
       try {
         var ls = localStorage.getItem('biwakara-desk');
-        if (ls) { state = JSON.parse(ls); delete state.tab; }
+        if (ls) { state = JSON.parse(ls); delete state.tab; lastSaved = JSON.stringify(state); }
       } catch (e) {}
     }
     render();
