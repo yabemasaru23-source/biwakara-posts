@@ -796,8 +796,23 @@ dialog img{width:100%;height:auto;border-radius:14px;display:block}
     if (timer) { clearTimeout(timer); }
     timer = setTimeout(flush, 900);
   }
+  function prune() {
+    var items = state.items || {};
+    Object.keys(items).forEach(function (k) {
+      var r = items[k] || {}, hasM = false;
+      Object.keys(r.m || {}).forEach(function (x) {
+        if (r.m[x] !== '' && r.m[x] !== undefined && r.m[x] !== null) { hasM = true; }
+      });
+      if ((r.status || 'none') === 'none' && !hasM && !r.url &&
+          r.x === undefined && r.ig === undefined) {
+        delete items[k];
+      }
+    });
+  }
+
   function flush() {
     timer = null;
+    prune();
     var snap = JSON.stringify(state);
     if (snap === lastSaved) { return; }   /* 変化がなければ何もしない */
     lastSaved = snap;
