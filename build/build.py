@@ -64,7 +64,8 @@ def carry_state(dest):
     st["items"] = {k: v for k, v in items.items()
                    if v.get("status", "none") != "none" or v.get("m") or
                    v.get("url") or v.get("x") is not None or v.get("ig") is not None}
-    if not st["items"] and not st.get("chosen") and not st.get("dates"):
+    if (not st["items"] and not st.get("chosen")
+            and not st.get("dates") and not st.get("igPick")):
         return None
     return json.dumps(st, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/")
 

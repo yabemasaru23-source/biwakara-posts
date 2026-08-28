@@ -146,6 +146,29 @@ section{display:flex;flex-direction:column;gap:18px}
   display:grid;place-items:center;font-size:12px;flex:none}
 .pickbar.set{background:transparent;border:1px solid var(--ok);color:var(--ok)}
 
+.slot{display:flex;flex-direction:column;gap:14px}
+.slothead{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.variants{display:flex;flex-direction:column;gap:10px}
+.variant{border:1px solid var(--line);border-radius:12px;padding:14px;
+  display:grid;grid-template-columns:132px 1fr;gap:14px;align-items:start;
+  transition:border-color .15s,opacity .15s,background .15s}
+.variant.on{border-color:var(--accent);background:var(--accent-soft);
+  box-shadow:0 0 0 1px var(--accent)}
+.variant.off{opacity:.58}
+.vpick{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;
+  border:2px dashed var(--line);border-radius:10px;padding:14px 10px;background:var(--surface);
+  width:100%;min-height:118px}
+.vpick:hover{border-color:var(--accent)}
+.vpick .radio{width:52px;height:52px;border-radius:50%;border:2px solid var(--ink2);
+  display:grid;place-items:center;font-family:"Shippori Mincho",serif;font-size:24px;
+  font-weight:700;color:var(--ink2);line-height:1}
+.vpick .vl{font-size:12px;font-weight:700;color:var(--ink2);text-align:center;line-height:1.5}
+.vpick:hover .radio,.vpick:hover .vl{border-color:var(--accent);color:var(--accent)}
+.variant.on .vpick{border-style:solid;border-color:var(--accent);background:var(--surface)}
+.variant.on .vpick .radio{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.variant.on .vpick .vl{color:var(--accent)}
+.vbody{display:flex;flex-direction:column;gap:9px;min-width:0}
+
 .mediatabs{display:flex;gap:6px}
 .mediatabs button{font-size:12px;padding:4px 12px;border:1px solid var(--line);border-radius:999px;
   color:var(--ink2)}
@@ -214,6 +237,10 @@ dialog img{width:100%;height:auto;border-radius:14px;display:block}
 
 @media (max-width:640px){
   #root{padding:26px 15px 64px;gap:28px}
+  .variant{grid-template-columns:1fr}
+  .vpick{flex-direction:row;justify-content:flex-start;gap:14px;min-height:0;padding:11px 14px}
+  .vpick .radio{width:44px;height:44px;font-size:21px;flex:none}
+  .vpick .vl{text-align:left}
   .card{grid-template-columns:1fr}
   .thumb{max-width:220px}
   .when{margin-left:0;width:100%}
@@ -227,7 +254,7 @@ dialog img{width:100%;height:auto;border-radius:14px;display:block}
 </style>
 
 <script id="app-data" type="application/json">__DATA__</script>
-<script id="app-state" type="application/json">{"chosen":null,"dates":{},"items":{}}</script>
+<script id="app-state" type="application/json">{"chosen":null,"dates":{},"igPick":{},"items":{}}</script>
 
 <script id="app-code">
 (function () {
@@ -272,8 +299,12 @@ dialog img{width:100%;height:auto;border-radius:14px;display:block}
   DATA.days.forEach(function (d) {
     ITEMS.push({ id: d.id, group: 'day', name: d.theme,
       idx: 'DAY ' + (d.day < 10 ? '0' : '') + d.day,
-      when: '', media: ['x', 'ig'], x: d.x, ig: d.ig, tags: d.tags,
+      when: '', media: ['x'], x: d.x, ig: '', tags: [],
       check: d.check, img: DATA.images[d.id] || null });
+    ITEMS.push({ id: 'i' + d.id.slice(1), group: 'ig', name: d.theme,
+      idx: '第' + d.day + '回', when: '', media: ['ig'], x: '',
+      variants: d.igv, tags: d.tags, check: d.check,
+      img: DATA.images[d.id] || null });
   });
   var BY_ID = {};
   ITEMS.forEach(function (it) { BY_ID[it.id] = it; });
@@ -286,13 +317,29 @@ dialog img{width:100%;height:auto;border-radius:14px;display:block}
     if (!state.items[id].m) { state.items[id].m = {}; }
     return state.items[id];
   }
+  function pickedVariant(it) {
+    var v = (state.igPick || {})[it.id];
+    var hit = null;
+    it.variants.forEach(function (x) { if (x.id === v) { hit = x; } });
+    return hit;
+  }
   function textOf(id, med) {
     var r = get(id), it = BY_ID[id];
+    if (it.group === 'ig' && med === 'ig') {
+      if (r.ig !== undefined && r.ig !== null) { return r.ig; }
+      var pv = pickedVariant(it);
+      return pv ? pv.text : '';
+    }
     return (r[med] !== undefined && r[med] !== null) ? r[med] : it[med];
   }
   function edited(id, med) {
-    var r = state.items[id];
-    return !!(r && r[med] !== undefined && r[med] !== null && r[med] !== BY_ID[id][med]);
+    var r = state.items[id], it = BY_ID[id];
+    if (!r || r[med] === undefined || r[med] === null) { return false; }
+    if (it.group === 'ig') {
+      var pv = pickedVariant(it);
+      return !!pv && r[med] !== pv.text;
+    }
+    return r[med] !== it[med];
   }
   function fullText(id, med) {
     var t = textOf(id, med), it = BY_ID[id];
@@ -449,6 +496,118 @@ dialog img{width:100%;height:auto;border-radius:14px;display:block}
       '</div></article>';
   }
 
+  function igCard(it) {
+    var r = get(it.id);
+    var st = r.status || 'none';
+    var picked = (state.igPick || {})[it.id] || null;
+    var isEditing = editing === it.id + ':ig';
+
+    var chips = '<span class="chip ' + STATUS[st].cls + '">' + STATUS[st].label + '</span>';
+    if (picked) { chips = '<span class="chip c-pick">案' + picked + '</span>' + chips; }
+    if (edited(it.id, 'ig')) { chips += '<span class="chip c-edit">修正済み</span>'; }
+
+    var bar = picked
+      ? '<div class="pickbar set"><span class="mark">&#10003;</span>案' + esc(picked) +
+        ' に決まりました。ほかの案の丸を押すと差し替えられます。<span class="spacer"></span>' +
+        '<button class="btn ghost" data-act="igpick" data-id="' + it.id +
+        '" data-val="">選択を解除する</button></div>'
+      : '<div class="pickbar"><span class="mark">?</span>' +
+        'この回に出す案を、A・B・C から1つ選んでください。</div>';
+
+    var vs = it.variants.map(function (v) {
+      var on = picked === v.id;
+      var body;
+      if (on && isEditing) {
+        body = '<textarea data-edit="' + it.id + ':ig">' + esc(textOf(it.id, 'ig')) + '</textarea>' +
+          '<p class="tagline">' + esc(it.tags.map(function (x) { return '#' + x; }).join(' ')) +
+          '（ハッシュタグは固定です）</p>' +
+          '<div class="actions"><button class="btn primary" data-act="save" data-id="' + it.id +
+          '" data-val="ig">保存する</button>' +
+          '<button class="btn ghost" data-act="cancel">やめる</button>' +
+          (edited(it.id, 'ig')
+            ? '<span class="spacer"></span><button class="btn ghost" data-act="reset" data-id="' +
+              it.id + '" data-val="ig">元の文面に戻す</button>' : '') + '</div>';
+      } else {
+        var t = on ? fullText(it.id, 'ig')
+                   : v.text + '\n\n' + it.tags.map(function (x) { return '#' + x; }).join(' ');
+        body = '<div class="body">' + esc(t) + '</div>' + meter(t, 'ig');
+      }
+      return '<div class="variant' + (on ? ' on' : (picked ? ' off' : '')) + '">' +
+        '<button class="vpick" data-act="igpick" data-id="' + it.id + '" data-val="' + v.id +
+        '" aria-pressed="' + (on ? 'true' : 'false') + '">' +
+        '<span class="radio">' + v.id + '</span>' +
+        '<span class="vl">' + esc(v.label) + (on ? '<br>選択中' : '') + '</span></button>' +
+        '<div class="vbody">' + body + '</div></div>';
+    }).join('');
+
+    var flags = (it.check && it.check.length)
+      ? '<div class="flag"><b>公開前に確認すること</b>' +
+        it.check.map(function (c) { return '<span>・' + esc(c) + '</span>'; }).join('') + '</div>'
+      : '';
+
+    var acts = '';
+    if (picked && !isEditing) {
+      var seg = '<div class="seg" role="group" aria-label="状態">' +
+        ['ok', 'hold'].map(function (v) {
+          return '<button data-act="status" data-id="' + it.id + '" data-val="' + v + '"' +
+            (st === v ? ' class="on"' : '') + '>' + STATUS[v].label + '</button>';
+        }).join('') + '</div>';
+      acts = '<div class="actions">' + seg +
+        (st === 'posted'
+          ? '<button class="btn ghost" data-act="unpost" data-id="' + it.id + '">投稿前に戻す</button>'
+          : '<button class="btn primary" data-act="post" data-id="' + it.id + '">投稿したので記録する</button>') +
+        '<button class="btn" data-act="edit" data-id="' + it.id + '" data-val="ig">文面を直す</button>' +
+        '<button class="btn ghost" data-act="copy" data-id="' + it.id + '" data-val="ig">キャプションをコピー</button>' +
+        '<a class="btn" target="_blank" rel="noopener" href="https://www.instagram.com/">Instagram をひらく</a>' +
+        (it.img ? '<button class="btn ghost" data-act="dl" data-id="' + it.id + '">画像を保存</button>' : '') +
+        '<span class="spacer"></span>' +
+        '<label class="dfield">日付<input type="date" data-date="' + it.id + '" value="' +
+        esc(dateOf(it.id)) + '"></label></div>';
+    } else if (!picked) {
+      acts = '<div class="actions"><span class="spacer"></span>' +
+        '<label class="dfield">日付<input type="date" data-date="' + it.id + '" value="' +
+        esc(dateOf(it.id)) + '"></label></div>';
+    }
+
+    var img = it.img
+      ? '<button class="thumb" data-act="zoom" data-id="' + it.id +
+        '" aria-label="画像を拡大" style="max-width:132px"><img src="' + it.img + '" alt=""></button>'
+      : '';
+
+    return '<article class="card noimg slot' + (st === 'posted' ? ' done' : '') + '">' +
+      '<div class="slothead">' + dateChip(dateOf(it.id)) +
+        '<span class="idx">' + esc(it.idx) + '</span>' +
+        '<span class="name">' + esc(it.name) + '</span>' + chips + '</div>' +
+      bar + '<div class="variants">' + vs + '</div>' + flags + acts +
+      (st === 'posted' ? metricsBlock(it, r) : '') +
+      '</article>';
+  }
+
+  function igView() {
+    var list = ITEMS.filter(function (it) { return it.group === 'ig'; });
+    list = list.slice().sort(function (a, b) {
+      var x = dateOf(a.id), y = dateOf(b.id);
+      if (x && y) { return x < y ? -1 : (x > y ? 1 : 0); }
+      if (x) { return -1; }
+      if (y) { return 1; }
+      return 0;
+    });
+    var done = list.filter(function (it) { return get(it.id).status === 'posted'; }).length;
+    var chosen = list.filter(function (it) { return (state.igPick || {})[it.id]; }).length;
+    return '<section><div class="sechead"><h2>Instagram の投稿</h2>' +
+      '<p class="lede">週3回のペースで出す想定です。1回につき3案あります。' +
+      'A・B・C の丸を押して、その回に出す案を決めてください。' +
+      '選ぶと、その案だけが色付きになります。</p></div>' +
+      '<div class="datebar"><b>1回目の日付</b>' +
+      '<input type="date" id="bulk-ig" value="' + esc(dateOf('i01') || '') + '">' +
+      '<button class="btn" data-act="bulk" data-val="ig">ここから週3回（月・水・金）で入れる</button>' +
+      '<span>選んだ日以降の月・水・金に、上から順に割り当てます。</span></div>' +
+      '<div class="pickbar' + (chosen === list.length ? ' set' : '') + '">' +
+      '<span class="mark">' + (chosen === list.length ? '&#10003;' : '?') + '</span>' +
+      '案の決定 ' + chosen + ' / ' + list.length + ' 回　　投稿済み ' + done + ' / ' + list.length + ' 回</div>' +
+      '<div class="stack">' + list.map(igCard).join('') + '</div></section>';
+  }
+
   function metricsBlock(it, r) {
     var m = r.m || {};
     var imp = num(m.imp);
@@ -482,6 +641,15 @@ dialog img{width:100%;height:auto;border-radius:14px;display:block}
     return t;
   }
 
+  function igTotal() {
+    return ITEMS.filter(function (it) { return it.group === 'ig'; }).length;
+  }
+  function igChosen() {
+    return ITEMS.filter(function (it) {
+      return it.group === 'ig' && (state.igPick || {})[it.id];
+    }).length;
+  }
+
   function tiles() {
     var t = totals();
     var plan = ITEMS.filter(function (it) { return (get(it.id).status || 'none') !== 'posted'; }).length;
@@ -490,6 +658,7 @@ dialog img{width:100%;height:auto;border-radius:14px;display:block}
     var er = t.imp > 0 ? (eng / t.imp * 100).toFixed(1) + '%' : '—';
     var rows = [
       [state.chosen ? '案' + state.chosen : '未定', '一発目の採用案'],
+      [igChosen() + ' / ' + igTotal(), 'Instagram 案の決定'],
       [String(plan), '投稿待ち'],
       [String(ok), '承認済み'],
       [String(t.n), '投稿済み'],
@@ -541,6 +710,7 @@ dialog img{width:100%;height:auto;border-radius:14px;display:block}
         return it.group === g && (get(it.id).status || 'none') !== 'posted';
       });
     };
+    /* Instagram は専用タブへ */
     var l = open('launch'), s = open('series'), d = open('day');
     if (!l.length && !s.length && !d.length) {
       return '<div class="empty">予定している投稿はありません。</div>';
@@ -549,8 +719,9 @@ dialog img{width:100%;height:auto;border-radius:14px;display:block}
       'A・B・C の3案から1つだけ選びます。X・Instagram共通の文面です。', l, pickBar()) +
       group('24時間テレビ連動シリーズ',
         '放送のタイミングに紐づくため、順番に意味があります。X のみ。', s, dateBar('series')) +
-      group('10日分のストーリー',
-        'Day 1 から順に、びわから基金が何をしている団体かを積み上げていく構成です。X とInstagramで文面を分けています。',
+      group('10日分のストーリー（X）',
+        'Day 1 から順に、びわから基金が何をしている団体かを積み上げていく構成です。' +
+        'Instagram は別のタブにまとめました。',
         d, dateBar('days'));
   }
 
@@ -563,7 +734,9 @@ dialog img{width:100%;height:auto;border-radius:14px;display:block}
     return '<section><div class="sechead"><h2>投稿済み</h2>' +
       '<p class="lede">Xは投稿のアナリティクス画面、Instagramはインサイトの数字を手で入れてください。' +
       '外部サービスと自動で連携はしていません。</p></div>' +
-      '<div class="stack">' + list.map(card).join('') + '</div></section>';
+      '<div class="stack">' + list.map(function (it) {
+        return it.group === 'ig' ? igCard(it) : card(it);
+      }).join('') + '</div></section>';
   }
 
   function saveBar() {
@@ -590,10 +763,11 @@ dialog img{width:100%;height:auto;border-radius:14px;display:block}
       '</header>' +
       tiles() +
       '<div class="tabs">' +
-        '<button data-act="tab" data-val="plan"' + (tab === 'plan' ? ' class="on"' : '') + '>これから出す</button>' +
+        '<button data-act="tab" data-val="plan"' + (tab === 'plan' ? ' class="on"' : '') + '>X の投稿</button>' +
+        '<button data-act="tab" data-val="ig"' + (tab === 'ig' ? ' class="on"' : '') + '>Instagram（週3回・3案から選ぶ）</button>' +
         '<button data-act="tab" data-val="done"' + (tab === 'done' ? ' class="on"' : '') + '>投稿済みと数字</button>' +
       '</div>' +
-      (tab === 'done' ? doneView() : planView()) +
+      (tab === 'done' ? doneView() : (tab === 'ig' ? igView() : planView())) +
       '<footer>' +
         '<p><b>素材</b>　びわから基金部門 CLAUDE.md 知識アーカイブ／SNS開設完了報告_投稿サンプル選定_2026-08-28.pdf</p>' +
         '<p><b>数字の入れ方</b>　Xは投稿の「アナリティクスを表示」、Instagramは投稿のインサイトから転記します。自動取得にはAPIの契約が必要なため、現状は手入力です。</p>' +
@@ -734,9 +908,24 @@ dialog img{width:100%;height:auto;border-radius:14px;display:block}
     }
     if (act === 'dl') { download(BY_ID[id]); return; }
     if (act === 'bulk') {
-      var src = document.getElementById(val === 'series' ? 'bulk-series' : 'bulk-days');
+      var src = document.getElementById('bulk-' + (val === 'days' ? 'days' : val));
       if (!src || !src.value) { return; }
       if (!state.dates) { state.dates = {}; }
+      if (val === 'ig') {
+        var cur = src.value, filled = 0, guard = 0;
+        var igs = ITEMS.filter(function (x) { return x.group === 'ig'; });
+        while (filled < igs.length && guard < 200) {
+          var pp = cur.split('-');
+          var wd = new Date(+pp[0], +pp[1] - 1, +pp[2]).getDay();
+          if (wd === 1 || wd === 3 || wd === 5) {
+            state.dates[igs[filled].id] = cur;
+            filled++;
+          }
+          cur = isoPlus(cur, 1);
+          guard++;
+        }
+        render(); flush(); return;
+      }
       if (val === 'series') {
         state.dates.s1 = src.value;
         state.dates.s2 = src.value;
@@ -748,6 +937,14 @@ dialog img{width:100%;height:auto;border-radius:14px;display:block}
       render(); flush(); return;
     }
     if (act === 'media') { media[id] = val; editing = null; render(); return; }
+    if (act === 'igpick') {
+      if (!state.igPick) { state.igPick = {}; }
+      var cur = state.igPick[id] || null;
+      if (!val || cur === val) { delete state.igPick[id]; }
+      else { state.igPick[id] = val; }
+      if (state.items[id]) { delete state.items[id].ig; }   /* 案を変えたら手直しは外す */
+      editing = null; render(); flush(); return;
+    }
     if (act === 'edit') { editing = id + ':' + val; render(); return; }
     if (act === 'cancel') { editing = null; render(); return; }
     if (act === 'save') {
