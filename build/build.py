@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """template.html + posts.json + images/*.png から自己完結の index.html を組み立てる。"""
-import base64, json, os, re
+import base64, io, json, os, re
+from PIL import Image
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 SITE = os.path.dirname(HERE)
@@ -15,10 +16,14 @@ def main():
     names = ["hero"] + ["L" + x["id"] for x in posts["launch"]]         + [x["id"] for x in posts["series"]] + [d["id"] for d in posts["days"]]
     images = {}
     for name in names:
-        p = os.path.join(IMG, name + ".png")
-        if os.path.exists(p):
-            b = base64.b64encode(open(p, "rb").read()).decode("ascii")
-            images[name] = "data:image/png;base64," + b
+        p = os.path.join(IMG, name + ".jpg")
+        if not os.path.exists(p):
+            continue
+        # 寸法はそのまま、画質だけ落として埋め込む（投稿用の原寸は images/ に残る）
+        buf = io.BytesIO()
+        Image.open(p).convert("RGB").save(buf, "JPEG", quality=72, optimize=True)
+        b = base64.b64encode(buf.getvalue()).decode("ascii")
+        images[name] = "data:image/jpeg;base64," + b
 
     data = {
         "launch": posts["launch"],
