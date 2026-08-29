@@ -12,12 +12,13 @@ BASE_TAGS = ["びわから基金", "出島福祉村", "親亡き後", "長崎", 
 
 def main():
     posts = json.load(open(os.path.join(HERE, "posts.json"), encoding="utf-8"))
+    names = ["hero"] + ["L" + x["id"] for x in posts["launch"]]         + [x["id"] for x in posts["series"]] + [d["id"] for d in posts["days"]]
     images = {}
-    for d in posts["days"]:
-        p = os.path.join(IMG, d["id"] + ".png")
+    for name in names:
+        p = os.path.join(IMG, name + ".png")
         if os.path.exists(p):
             b = base64.b64encode(open(p, "rb").read()).decode("ascii")
-            images[d["id"]] = "data:image/png;base64," + b
+            images[name] = "data:image/png;base64," + b
 
     data = {
         "launch": posts["launch"],
