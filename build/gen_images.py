@@ -94,6 +94,59 @@ h1{{font-family:"Shippori Mincho",serif;font-weight:700;
   </div>
 </div></body></html>"""
 
+SLIDE_TPL = """<!doctype html><html><head><meta charset="utf-8">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@600;700&family=Zen+Kaku+Gothic+New:wght@500;700&display=swap">
+<style>
+*{{margin:0;padding:0;box-sizing:border-box}}
+html,body{{width:1080px;height:1080px;overflow:hidden}}
+body{{position:relative;background:{bg};color:{fg};
+  font-family:"Zen Kaku Gothic New","Yu Gothic UI",sans-serif}}
+svg.deco{{position:absolute;inset:0;width:1080px;height:1080px}}
+.wrap{{position:absolute;inset:0;padding:96px;display:flex;flex-direction:column}}
+.top{{display:flex;align-items:center;justify-content:space-between;gap:16px}}
+.badge{{font-family:"Shippori Mincho",serif;font-weight:700;font-size:25px;
+  border:2px solid {fg};border-radius:999px;padding:6px 22px;letter-spacing:.08em}}
+.pageno{{font-family:"Shippori Mincho",serif;font-size:25px;font-weight:700;opacity:.55}}
+.mid{{flex:1;display:flex;align-items:center}}
+h1{{font-family:"Shippori Mincho",serif;font-weight:700;font-size:{size}px;
+  line-height:1.55;letter-spacing:.02em;white-space:pre-line}}
+.bot{{font-family:"Shippori Mincho",serif;font-size:25px;font-weight:600;opacity:.72}}
+</style></head><body>
+<svg class="deco" viewBox="0 0 1080 1080" aria-hidden="true">{deco}</svg>
+<div class="wrap">
+  <div class="top"><span class="badge">びわから基金</span><span class="pageno">{no} / 4</span></div>
+  <div class="mid"><h1>{text}</h1></div>
+  <div class="bot">社会福祉法人 出島福祉村 ／ @biwakara_fund</div>
+</div></body></html>"""
+
+
+def slide_deco(i, p, solid):
+    """びわの実を思わせる丸。奇数枚目と偶数枚目で置き方を変える。"""
+    on = CREAM if solid else p["c"]
+    if i % 2 == 0:
+        return ('<circle cx="900" cy="880" r="230" fill="%s" opacity=".16"/>'
+                '<circle cx="1010" cy="640" r="120" fill="%s" opacity=".10"/>' % (on, on))
+    return ('<circle cx="150" cy="200" r="190" fill="%s" opacity=".13"/>'
+            '<circle cx="960" cy="930" r="150" fill="%s" opacity=".16"/>' % (on, on))
+
+
+def render_slide(name, p, solid, no, text):
+    n = max(len(x) for x in text.split('\n'))
+    size = 78 if n <= 12 else (66 if n <= 16 else 56)
+    html = SLIDE_TPL.format(bg=(p["c"] if solid else CREAM),
+                            fg=(CREAM if solid else p["deep"]),
+                            deco=slide_deco(no, p, solid), no=no, text=text, size=size)
+    src = os.path.join(TMP, name + ".html")
+    open(src, "w", encoding="utf-8").write(html)
+    png = os.path.join(TMP, name + ".png")
+    subprocess.run([CHROME, "--headless", "--disable-gpu", "--hide-scrollbars",
+                    "--force-device-scale-factor=1", "--virtual-time-budget=9000",
+                    "--window-size=1080,1080",
+                    "--screenshot=" + png, "file:///" + src.replace('\\', "/")],
+                   check=True, capture_output=True)
+    Image.open(png).convert("RGB").save(os.path.join(OUT, name + ".jpg"), "JPEG", quality=90)
+
+
 SQ = dict(W=1080, H=1080, pad=76, bs=25, bp=7, bp2=22, as_=23, ts=26, tm=20,
           ss=25, sm=18, bm=52, os=26, oss=19, ns=58, pos="center")
 HERO = dict(W=1720, H=430, pad=44, bs=21, bp=5, bp2=18, as_=19, ts=19, tm=10,
@@ -172,8 +225,12 @@ def main():
         n += 1
 
     for i, d in enumerate(posts["days"]):
-        render(d["id"], SQ, PALETTE[i % 5], d["theme"], d["cap"], "DAY %02d" % d["day"])
+        p = PALETTE[i % 5]
+        render(d["id"], SQ, p, d["theme"], d["cap"], "DAY %02d" % d["day"])
         n += 1
+        for j, text in enumerate(d.get("igslides", [])):
+            render_slide("%s_%d" % (d["id"], j + 2), p, j % 2 == 0, j + 2, text)
+            n += 1
 
     print("generated", n, "images")
 

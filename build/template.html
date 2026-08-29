@@ -192,6 +192,15 @@ section{display:flex;flex-direction:column;gap:18px}
 .pickbar.set .mark{background:var(--c2)}
 
 .slot{display:flex;flex-direction:column;gap:15px}
+.film{display:flex;flex-direction:column;gap:10px}
+.filmhead{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;font-size:12px;color:var(--ink2)}
+.filmhead b{font-family:"Shippori Mincho",serif;font-size:15px;color:var(--c);font-weight:700}
+.filmrow{display:flex;gap:10px;overflow-x:auto;padding-bottom:4px}
+.frame{display:flex;flex-direction:column;gap:5px;flex:none}
+.frame figcaption{font-family:"Roboto Mono",monospace;font-size:10.5px;color:var(--ink2);
+  display:flex;gap:8px;align-items:center}
+.frame figcaption a{color:var(--c);font-weight:700;text-decoration:none}
+.frame figcaption a:hover{text-decoration:underline}
 .slothead{display:flex;align-items:center;gap:11px;flex-wrap:wrap}
 .slotimg{width:104px;height:104px;border-radius:14px;overflow:hidden;border:none;padding:0;
   flex:none;box-shadow:var(--shadow);transition:transform .18s}
@@ -265,6 +274,7 @@ textarea{width:100%;min-height:200px;background:var(--surface2);color:var(--ink)
   font-variant-numeric:tabular-nums;width:100%}
 .mfield input:hover{border-color:var(--c1)}
 .urlrow{display:flex;gap:9px;align-items:center;flex-wrap:wrap}
+.ulabel{font-size:11.5px;font-weight:700;color:var(--ink2);min-width:66px}
 .urlrow input{flex:1;min-width:220px;background:var(--surface2);border:1px solid var(--line);
   border-radius:999px;padding:7px 14px;font-size:12.5px;color:var(--ink)}
 .er{font-family:"Roboto Mono",monospace;font-size:12px;color:var(--c2);font-weight:700;
@@ -358,7 +368,10 @@ dialog img{width:100%;height:auto;border-radius:18px;display:block}
     ITEMS.push({ id: 'i' + d.id.slice(1), group: 'ig', name: d.theme,
       idx: '第' + d.day + '回', when: '', media: ['ig'], x: '',
       variants: d.igv, tags: d.tags, check: d.check,
-      img: DATA.images[d.id] || null, tone: (i % 5) + 1 });
+      img: DATA.images[d.id] || null, tone: (i % 5) + 1,
+      keys: [d.id, d.id + '_2', d.id + '_3', d.id + '_4'].filter(function (k) {
+        return DATA.images[k];
+      }) });
   });
   var BY_ID = {};
   ITEMS.forEach(function (it) { BY_ID[it.id] = it; });
@@ -558,6 +571,27 @@ dialog img{width:100%;height:auto;border-radius:18px;display:block}
       '</div></article>';
   }
 
+  var RAW = 'https://yabemasaru23-source.github.io/biwakara-posts/images/';
+
+  function filmstrip(it) {
+    var keys = it.keys || (it.img ? [it.id] : []);
+    if (!keys.length) { return ''; }
+    return '<div class="film"><div class="filmhead">' +
+      '<b>カルーセル ' + keys.length + ' 枚</b>' +
+      '<span>1枚目が表紙です。Instagramにはこの順で入れてください。</span>' +
+      '<span class="spacer"></span>' +
+      '<button class="btn ghost" data-act="dlall" data-id="' + it.id + '">' + keys.length +
+      '枚まとめて保存</button></div>' +
+      '<div class="filmrow">' + keys.map(function (k, i) {
+        return '<figure class="frame"><button class="slotimg" data-act="zoom" data-key="' + k +
+          '" aria-label="' + (i + 1) + '枚目を拡大"><img src="' + DATA.images[k] +
+          '" alt=""></button>' +
+          '<figcaption>' + (i + 1) + ' / ' + keys.length +
+          ' <a href="' + RAW + k + '.jpg" target="_blank" rel="noopener">原寸</a>' +
+          '</figcaption></figure>';
+      }).join('') + '</div></div>';
+  }
+
   function igCard(it) {
     var r = get(it.id);
     var st = r.status || 'none';
@@ -634,12 +668,10 @@ dialog img{width:100%;height:auto;border-radius:18px;display:block}
     return '<article class="card noimg slot tone' + (it.tone || 1) +
       (st === 'posted' ? ' done' : '') + '">' +
       '<div class="slothead">' +
-        (it.img ? '<button class="slotimg" data-act="zoom" data-id="' + it.id +
-          '" aria-label="画像を拡大"><img src="' + it.img + '" alt=""></button>' : '') +
         dateChip(dateOf(it.id)) +
         '<span class="idx">' + esc(it.idx) + '</span>' +
         '<span class="name">' + esc(it.name) + '</span>' + chips + '</div>' +
-      bar + '<div class="variants">' + vs + '</div>' + flags + acts +
+      bar + filmstrip(it) + '<div class="variants">' + vs + '</div>' + flags + acts +
       (st === 'posted' ? metricsBlock(it, r) : '') +
       '</article>';
   }
@@ -681,13 +713,19 @@ dialog img{width:100%;height:auto;border-radius:18px;display:block}
           'data-metric="' + it.id + ':' + f.k + '" value="' +
           (m[f.k] === undefined || m[f.k] === null || m[f.k] === '' ? '' : esc(m[f.k])) + '"></div>';
       }).join('') + '</div>' +
-      '<div class="urlrow">' +
-        '<input type="url" placeholder="投稿のURLを貼る（あとで見返すため）" data-url="' + it.id +
-        '" value="' + esc(r.url || '') + '">' +
-        (r.url ? '<a class="btn ghost" target="_blank" rel="noopener" href="' + esc(r.url) +
-          '">ひらく</a>' : '') +
-        '<span class="er">エンゲージメント率 ' + er + '</span>' +
-      '</div></div>';
+      it.media.map(function (m) {
+        var key = m === 'x' ? 'url' : 'urlIg';
+        var v = r[key] || '';
+        return '<div class="urlrow">' +
+          '<span class="ulabel">' + (m === 'x' ? 'X' : 'Instagram') + '</span>' +
+          '<input type="url" placeholder="投稿のURLを貼る（あとで見返すため）" data-url="' +
+          it.id + ':' + key + '" value="' + esc(v) + '">' +
+          (v ? '<a class="btn ghost" target="_blank" rel="noopener" href="' + esc(v) +
+            '">ひらく</a>' : '') + '</div>';
+      }).join('') +
+      '<div class="urlrow"><span class="spacer"></span>' +
+      '<span class="er">エンゲージメント率 ' + er + '</span></div>' +
+      '</div>';
   }
 
   /* ---------- summary ---------- */
@@ -968,7 +1006,7 @@ dialog img{width:100%;height:auto;border-radius:18px;display:block}
       Object.keys(r.m || {}).forEach(function (x) {
         if (r.m[x] !== '' && r.m[x] !== undefined && r.m[x] !== null) { hasM = true; }
       });
-      if ((r.status || 'none') === 'none' && !hasM && !r.url &&
+      if ((r.status || 'none') === 'none' && !hasM && !r.url && !r.urlIg &&
           r.x === undefined && r.ig === undefined) {
         delete items[k];
       }
@@ -1045,7 +1083,11 @@ dialog img{width:100%;height:auto;border-radius:18px;display:block}
       render(); flush(); return;
     }
     var uk = t.getAttribute && t.getAttribute('data-url');
-    if (uk) { rec(uk).url = t.value.trim(); persist(); }
+    if (uk) {
+      var up = uk.split(':');
+      rec(up[0])[up[1] || 'url'] = t.value.trim();
+      persist();
+    }
   }
 
   function download(it) {
@@ -1080,10 +1122,22 @@ dialog img{width:100%;height:auto;border-radius:18px;display:block}
       return;
     }
     if (act === 'zoom') {
+      var key = b.getAttribute('data-key');
+      var srcUri = key ? DATA.images[key] : (BY_ID[id] || {}).img;
+      if (!srcUri) { return; }
       var dlg = document.getElementById('zoom');
-      dlg.querySelector('img').src = BY_ID[id].img;
+      dlg.querySelector('img').src = srcUri;
       dlg.showModal();
       dlg.onclick = function () { dlg.close(); };
+      return;
+    }
+    if (act === 'dlall') {
+      var itm = BY_ID[id];
+      (itm.keys || []).forEach(function (k, i) {
+        setTimeout(function () {
+          download({ id: k, name: itm.name + '_' + (i + 1), img: DATA.images[k] });
+        }, i * 400);
+      });
       return;
     }
     if (act === 'handoff') {

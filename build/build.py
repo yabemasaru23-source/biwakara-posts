@@ -13,15 +13,24 @@ BASE_TAGS = ["びわから基金", "出島福祉村", "親亡き後", "長崎", 
 
 def main():
     posts = json.load(open(os.path.join(HERE, "posts.json"), encoding="utf-8"))
-    names = ["hero"] + ["L" + x["id"] for x in posts["launch"]]         + [x["id"] for x in posts["series"]] + [d["id"] for d in posts["days"]]
+    names = ["hero"] + ["L" + x["id"] for x in posts["launch"]]         + [x["id"] for x in posts["series"]]
+    slides = []
+    for d in posts["days"]:
+        names.append(d["id"])
+        for j in range(len(d.get("igslides", []))):
+            slides.append("%s_%d" % (d["id"], j + 2))
+    names += slides
     images = {}
     for name in names:
         p = os.path.join(IMG, name + ".jpg")
         if not os.path.exists(p):
             continue
-        # 寸法はそのまま、画質だけ落として埋め込む（投稿用の原寸は images/ に残る）
+        # 画質を落として埋め込む（投稿用の原寸は images/ に残り、原寸リンクから開ける）
+        im = Image.open(p).convert("RGB")
+        if name in slides:            # カルーセルの中身は下見用なので小さくてよい
+            im = im.resize((520, 520), Image.LANCZOS)
         buf = io.BytesIO()
-        Image.open(p).convert("RGB").save(buf, "JPEG", quality=72, optimize=True)
+        im.save(buf, "JPEG", quality=72, optimize=True)
         b = base64.b64encode(buf.getvalue()).decode("ascii")
         images[name] = "data:image/jpeg;base64," + b
 
