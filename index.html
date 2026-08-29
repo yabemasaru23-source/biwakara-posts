@@ -73,6 +73,8 @@ h2::before{content:"";width:13px;height:13px;border-radius:50%;background:var(--
 .savebar{display:flex;align-items:center;gap:9px;font-size:12.5px;color:var(--ink2);
   background:var(--surface2);border-radius:999px;padding:8px 16px;align-self:flex-start}
 .savebar .dot{background:var(--c1)}
+.savebar.warn{color:var(--c5);background:color-mix(in srgb,var(--c5) 14%,var(--surface));font-weight:700}
+.savebar.warn .dot{background:var(--c5)}
 
 .progress{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
   padding:18px 20px;display:flex;flex-direction:column;gap:12px;box-shadow:var(--shadow)}
@@ -818,11 +820,14 @@ dialog img{width:100%;height:auto;border-radius:18px;display:block}
 
   function saveBar() {
     var msg = mode === 'saved'
-      ? 'この画面での判断と数字は保存され、共有した相手にも同じものが見えます'
-      : mode === 'local'
-        ? '保存先に接続していないため、変更はこのブラウザにだけ残ります'
-        : '保存先を確認しています';
-    return '<div class="savebar"><span class="dot"></span>' + esc(msg) + '</div>';
+      ? '編集の権限があれば、判断と数字は保存され、共有した相手にも同じものが見えます'
+      : mode === 'readonly'
+        ? 'この画面は閲覧のみの権限で開かれています。入力しても保存されません（このブラウザにだけ残ります）'
+        : mode === 'local'
+          ? 'ここは閲覧用の控えです。入力はこのブラウザにだけ残り、他の人には反映されません'
+          : '保存先を確認しています';
+    return '<div class="savebar' + (mode === 'readonly' ? ' warn' : '') + '">' +
+      '<span class="dot"></span>' + esc(msg) + '</div>';
   }
 
   function view() {
@@ -904,7 +909,7 @@ dialog img{width:100%;height:auto;border-radius:18px;display:block}
         if (code === 'conflict') { return; }
         if (code === 'not_writer' || code === 'not_granted' ||
             code === 'not_declared' || code === 'capability_disabled') {
-          ns = null; mode = 'local'; render();
+          ns = null; mode = 'readonly'; render();
         }
       });
       return;
