@@ -158,7 +158,8 @@ section{display:flex;flex-direction:column;gap:18px}
   border-radius:999px;padding:6px 14px;color:var(--ink);font-family:"Roboto Mono",monospace;
   font-size:13px}
 
-.pickbox{width:100%;aspect-ratio:1;border:2px dashed var(--line);border-radius:14px;
+.pickcol{display:flex;flex-direction:column;gap:12px;min-width:0}
+.pickbox{width:100%;aspect-ratio:auto;min-height:132px;border:2px dashed var(--line);border-radius:14px;
   background:var(--surface2);display:flex;flex-direction:column;align-items:center;
   justify-content:center;gap:12px;padding:10px;
   transition:background .15s,border-color .15s,transform .15s}
@@ -278,7 +279,8 @@ dialog img{width:100%;height:auto;border-radius:18px;display:block}
   .card{grid-template-columns:1fr}
   .thumb{max-width:240px}
   .when{margin-left:0;width:100%}
-  .pickbox{aspect-ratio:auto;flex-direction:row;justify-content:flex-start;gap:15px;padding:13px 17px}
+  .pickcol{max-width:100%}
+  .pickbox{flex-direction:row;justify-content:flex-start;gap:15px;padding:13px 17px;min-height:0}
   .pickbox .radio{width:52px;height:52px;font-size:24px;flex:none}
   .pickbox .pl{text-align:left}
   .variant{grid-template-columns:1fr}
@@ -519,14 +521,14 @@ dialog img{width:100%;height:auto;border-radius:18px;display:block}
     var img = '';
     if (isLaunch) {
       var on = state.chosen === it.id;
-      img = (it.img ? '<button class="thumb" data-act="zoom" data-id="' + it.id +
-              '" aria-label="画像を拡大" style="margin-bottom:12px"><img src="' + it.img +
-              '" alt=""></button>' : '') +
+      img = '<div class="pickcol">' +
+        (it.img ? '<button class="thumb" data-act="zoom" data-id="' + it.id +
+              '" aria-label="画像を拡大"><img src="' + it.img + '" alt=""></button>' : '') +
         '<button class="pickbox' + (on ? ' on' : '') + '" data-act="pick" data-id="' +
         it.id + '" aria-pressed="' + (on ? 'true' : 'false') + '">' +
         '<span class="radio">' + it.id + '</span>' +
         '<span class="pl">' + (on ? '一発目は<br>これに決定' : '一発目を<br>この案にする') + '</span>' +
-        '</button>';
+        '</button></div>';
     } else if (it.img) {
       img = '<button class="thumb" data-act="zoom" data-id="' + it.id +
         '" aria-label="画像を拡大"><img src="' + it.img + '" alt=""></button>';
