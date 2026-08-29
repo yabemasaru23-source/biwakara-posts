@@ -695,7 +695,13 @@ dialog img{width:100%;height:auto;border-radius:18px;display:block}
   }
 
   function progressStrip() {
-    var all = ITEMS.filter(function (it) { return it.group !== 'launch'; });
+    /* 一発目は3案あるので、採用した1本だけを1枠として数える */
+    var launch = ITEMS.filter(function (it) { return it.group === 'launch'; });
+    var slot = null;
+    launch.forEach(function (it) { if (state.chosen === it.id) { slot = it; } });
+    if (!slot) { slot = launch[0]; }
+    var all = (slot ? [slot] : []).concat(
+      ITEMS.filter(function (it) { return it.group !== 'launch'; }));
     var ok = 0, posted = 0;
     var segs = all.map(function (it) {
       var st = get(it.id).status || 'none';
