@@ -76,6 +76,12 @@ h2::before{content:"";width:13px;height:13px;border-radius:50%;background:var(--
 .savebar.warn{color:var(--c5);background:color-mix(in srgb,var(--c5) 14%,var(--surface));font-weight:700}
 .savebar.warn .dot{background:var(--c5)}
 
+.handoff{background:color-mix(in srgb,var(--c1) 12%,var(--surface));
+  border:1px solid var(--c1);border-radius:var(--radius);padding:16px 20px;
+  display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.handoff b{font-family:"Shippori Mincho",serif;font-size:17px;font-weight:700;color:var(--c1)}
+.handoff span{font-size:12.5px;color:var(--ink2);flex:1;min-width:240px;line-height:1.7}
+
 .progress{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
   padding:18px 20px;display:flex;flex-direction:column;gap:12px;box-shadow:var(--shadow)}
 .ptop{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
@@ -818,6 +824,71 @@ dialog img{width:100%;height:auto;border-radius:18px;display:block}
       }).join('') + '</div></section>';
   }
 
+  function handoffText() {
+    var L = ['びわから基金 投稿デスク ／ 確認結果',
+             new Date().toLocaleDateString('ja-JP') + ' 時点', ''];
+    if (state.chosen) {
+      L.push('【一発目】 案' + state.chosen + ' がよいと思います');
+      L.push('');
+    }
+    var picks = ITEMS.filter(function (it) {
+      return it.group === 'ig' && (state.igPick || {})[it.id];
+    });
+    if (picks.length) {
+      L.push('【Instagram：選んだ案】');
+      picks.forEach(function (it) {
+        L.push('  ' + it.idx + ' ' + it.name + ' … 案' + state.igPick[it.id] +
+          (dateOf(it.id) ? '（' + dateOf(it.id) + '）' : ''));
+      });
+      L.push('');
+    }
+    var by = function (st) {
+      return ITEMS.filter(function (it) { return get(it.id).status === st; });
+    };
+    var ok = by('ok'), hold = by('hold');
+    if (ok.length) {
+      L.push('【これでよい】');
+      ok.forEach(function (it) { L.push('  ' + (it.idx ? it.idx + ' ' : '') + it.name); });
+      L.push('');
+    }
+    if (hold.length) {
+      L.push('【直してほしい】');
+      hold.forEach(function (it) { L.push('  ' + (it.idx ? it.idx + ' ' : '') + it.name); });
+      L.push('');
+    }
+    var eds = [];
+    ITEMS.forEach(function (it) {
+      ['x', 'ig'].forEach(function (m) {
+        if (it.media.indexOf(m) >= 0 && edited(it.id, m)) {
+          eds.push({ it: it, m: m });
+        }
+      });
+    });
+    if (eds.length) {
+      L.push('【書き直した文面】');
+      eds.forEach(function (e) {
+        L.push('--- ' + (e.it.idx ? e.it.idx + ' ' : '') + e.it.name +
+          '（' + (e.m === 'x' ? 'X' : 'Instagram') + '）---');
+        L.push(textOf(e.it.id, e.m));
+        L.push('');
+      });
+    }
+    if (L.length <= 3) {
+      L.push('（まだ何も選ばれていません）');
+    }
+    L.push('---');
+    L.push('この画面: https://yabemasaru23-source.github.io/biwakara-posts/');
+    return L.join('\n');
+  }
+
+  function handoffBar() {
+    if (mode === 'saved' || mode === 'pending') { return ''; }
+    return '<div class="handoff"><b>決めた内容を送る</b>' +
+      '<span>この画面での選択は、あなたのブラウザにだけ残ります。' +
+      '決め終わったらボタンを押して、コピーされた文をLINEかメールで担当までお送りください。</span>' +
+      '<button class="btn primary" data-act="handoff">内容をコピーする</button></div>';
+  }
+
   function saveBar() {
     var msg = mode === 'saved'
       ? '編集の権限があれば、判断と数字は保存され、共有した相手にも同じものが見えます'
@@ -852,6 +923,7 @@ dialog img{width:100%;height:auto;border-radius:18px;display:block}
         '<button data-act="tab" data-val="ig"' + (tab === 'ig' ? ' class="on"' : '') + '>Instagram（週3回・3案から選ぶ）</button>' +
         '<button data-act="tab" data-val="done"' + (tab === 'done' ? ' class="on"' : '') + '>投稿済みと数字</button>' +
       '</div>' +
+      handoffBar() +
       (tab === 'done' ? doneView() : (tab === 'ig' ? igView() : planView())) +
       '<footer>' +
         '<p><b>素材</b>　びわから基金部門 CLAUDE.md 知識アーカイブ／SNS開設完了報告_投稿サンプル選定_2026-08-28.pdf</p>' +
@@ -1005,6 +1077,17 @@ dialog img{width:100%;height:auto;border-radius:18px;display:block}
       dlg.querySelector('img').src = BY_ID[id].img;
       dlg.showModal();
       dlg.onclick = function () { dlg.close(); };
+      return;
+    }
+    if (act === 'handoff') {
+      var old0 = b.textContent;
+      navigator.clipboard.writeText(handoffText()).then(function () {
+        b.textContent = 'コピーしました。貼り付けて送ってください';
+        setTimeout(function () { b.textContent = old0; }, 3000);
+      }).catch(function () {
+        b.textContent = 'コピーできませんでした';
+        setTimeout(function () { b.textContent = old0; }, 2500);
+      });
       return;
     }
     if (act === 'dl') { download(BY_ID[id]); return; }
