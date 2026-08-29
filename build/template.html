@@ -1063,9 +1063,19 @@ dialog img{width:100%;height:auto;border-radius:18px;display:block}
   /* ---------- boot ---------- */
   function boot() {
     if (!ns) {
+      /* 公開された内容が更新されていたら、このブラウザの控えは捨てる */
       try {
         var ls = localStorage.getItem('biwakara-desk');
-        if (ls) { state = JSON.parse(ls); delete state.tab; lastSaved = JSON.stringify(state); }
+        if (ls) {
+          var saved = JSON.parse(ls);
+          if (saved && saved.rev === state.rev) {
+            delete saved.tab;
+            state = saved;
+            lastSaved = JSON.stringify(state);
+          } else {
+            localStorage.removeItem('biwakara-desk');
+          }
+        }
       } catch (e) {}
     }
     render();

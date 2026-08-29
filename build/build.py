@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """template.html + posts.json + images/*.png から自己完結の index.html を組み立てる。"""
-import base64, io, json, os, re
+import base64, hashlib, io, json, os, re
 from PIL import Image
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -39,6 +39,8 @@ def main():
 
     dest = os.path.join(SITE, "index.html")
     kept = carry_state(dest)
+    if kept is None:
+        kept = stamp({"chosen": None, "dates": {}, "igPick": {}, "items": {}})
     if kept:
         out = re.sub(
             r'(<script id="app-state" type="application/json">).*?(</script>)',
@@ -70,9 +72,16 @@ def carry_state(dest):
     st["items"] = {k: v for k, v in items.items()
                    if v.get("status", "none") != "none" or v.get("m") or
                    v.get("url") or v.get("x") is not None or v.get("ig") is not None}
-    if (not st["items"] and not st.get("chosen")
-            and not st.get("dates") and not st.get("igPick")):
-        return None
+    return stamp(st)
+
+
+def stamp(st):
+    """公開する状態に rev（内容のハッシュ）を付ける。
+       中身が変われば rev も変わるので、閲覧者のブラウザに残った
+       古い控えを捨てさせられる（GitHub Pages 版で必要）。"""
+    st.pop("rev", None)
+    body = json.dumps(st, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    st["rev"] = hashlib.md5(body.encode("utf-8")).hexdigest()[:10]
     return json.dumps(st, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/")
 
 
