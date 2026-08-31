@@ -87,10 +87,10 @@ h1{{font-family:"Shippori Mincho",serif;font-weight:700;
 <div class="photo"></div><div class="scrim"></div>
 <div class="wrap">
   <div class="top"><span class="badge">びわから基金</span><span class="acct">@biwakara_fund</span></div>
-  <div class="mid"><div><div class="theme">{theme}</div><h1>{cap}</h1>{sub}</div></div>
+  <div class="mid"><div>{theme}<h1>{cap}</h1>{sub}</div></div>
   <div class="bot">
     <div class="org">社会福祉法人 出島福祉村<small>長崎 ／ びわから基金プロジェクト</small></div>
-    <div class="num">{num}</div>
+    {num}
   </div>
 </div></body></html>"""
 
@@ -176,7 +176,10 @@ def render(name, cfg, p, theme, cap, num, sub=""):
     size = cfg["W"] // (9 if n <= 11 else (11 if n <= 15 else 14))
     if cfg is HERO:
         size = 62
-    html = TPL.format(c=p["c"], deep=p["deep"], cream=CREAM, theme=theme, cap=cap, num=num,
+    theme_html = ('<div class="theme">%s</div>' % theme) if theme else ""
+    num_html = ('<div class="num">%s</div>' % num) if num else ""
+    html = TPL.format(c=p["c"], deep=p["deep"], cream=CREAM,
+                      theme=theme_html, cap=cap, num=num_html,
                       img=photo_uri(PHOTO[name], cfg["W"], cfg["H"]),
                       sub=('<div class="sub">%s</div>' % sub) if sub else "",
                       size=size, **cfg)
@@ -194,38 +197,51 @@ def render(name, cfg, p, theme, cap, num, sub=""):
     return jpg
 
 
-LAUNCH = [("A", "はじめまして", "はじめまして。"),
-          ("B", "宣言する",     "日本から、なくす。"),
-          ("C", "問いかける",   "もしも、を考える。")]
-SERIES = [("s1", "放送開始前",  "年に1度と、365日。"),
-          ("s2", "放送中",      "感動の、前にあるもの。"),
-          ("s3", "放送翌日",    "寄付だけが、方法ではない。"),
-          ("s4", "放送1週間後", "あの1日で、終わらない。")]
+# 一発目と連動シリーズは、テーマ名も通し番号も載せない。
+# 「放送翌日」「3 / 4」「案 A」はこちらの都合であって、読む人には意味がないため。
+LAUNCH = [("A", "", "はじめまして。"),
+          ("B", "", "日本から、なくす。"),
+          ("C", "", "もしも、を考える。")]
+SERIES = [("s1", "", "年に1度と、365日。"),
+          ("s2", "", "感動の、前にあるもの。"),
+          ("s3", "", "寄付だけが、方法ではない。"),
+          ("s4", "", "あの1日で、終わらない。")]
 
 
-def main():
+def main(only=None):
     posts = json.load(open(os.path.join(HERE, "posts.json"), encoding="utf-8"))
     os.makedirs(OUT, exist_ok=True)
     os.makedirs(TMP, exist_ok=True)
-    for old in os.listdir(OUT):
-        if old.endswith(".png"):
-            os.remove(os.path.join(OUT, old))
+    if only is None:
+        for old in os.listdir(OUT):
+            if old.endswith(".png"):
+                os.remove(os.path.join(OUT, old))
     n = 0
 
-    render("hero", HERO, PALETTE[0], "PROJECT", "びわから基金プロジェクト", "",
-           sub="「親亡き後」の不安を、日本からなくす。長崎から、10,000人の応援団をつくります。")
-    n += 1
+    def want(x):
+        return only is None or x in only
+
+    if want("hero"):
+        render("hero", HERO, PALETTE[0], "PROJECT", "びわから基金プロジェクト", "",
+               sub="「親亡き後」の不安を、日本からなくす。長崎から、10,000人の応援団をつくります。")
+        n += 1
 
     for i, (k, theme, cap) in enumerate(LAUNCH):
-        render("L" + k, SQ, PALETTE[i % 5], theme, cap, "案 " + k)
+        if not want("L" + k):
+            continue
+        render("L" + k, SQ, PALETTE[i % 5], theme, cap, "")
         n += 1
 
     for i, (k, theme, cap) in enumerate(SERIES):
-        render(k, SQ, PALETTE[(i + 2) % 5], theme, cap, str(i + 1) + " / 4")
+        if not want(k):
+            continue
+        render(k, SQ, PALETTE[(i + 2) % 5], theme, cap, "")
         n += 1
 
     for i, d in enumerate(posts["days"]):
         p = PALETTE[i % 5]
+        if not want(d["id"]):
+            continue
         render(d["id"], SQ, p, d["theme"], d["cap"], "DAY %02d" % d["day"])
         n += 1
         for j, text in enumerate(d.get("igslides", [])):
@@ -236,4 +252,5 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    import sys
+    main(set(sys.argv[1:]) or None)
