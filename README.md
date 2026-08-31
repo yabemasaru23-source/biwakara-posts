@@ -25,3 +25,20 @@ python gen_images.py   # posts.json の cap/tone から画像を再生成
 python build.py        # template.html + posts.json + images → ../index.html
 ```
 文面を直すときは `build/posts.json` を編集して `python build.py`。
+
+## 検査（必ず通す）
+
+`build/check.py` が、公開物に出してはいけないものを機械的に弾く。
+`gen_images.py`（画像を焼く直前）と `build.py`（組み立て前）の両方から呼ばれ、
+引っかかるとビルドが止まる。
+
+弾いているもの:
+- **内部の管理ラベル** … 「案 A」「放送翌日」「3 / 4」など。2026-08-31 に
+  これらが入った画像を投稿できる状態で出してしまったため追加した
+- 絵文字
+- X本文のハッシュタグ・URL・140字超過
+- Instagramの2,200字超過
+- 憲法の禁止表現（無料配布／限定／今だけ／DMください など）
+
+例外として「DAY nn」は10日分の表紙のみ、「n / 4」はカルーセルの中身のみ許可。
+新しい管理ラベルを増やしたら `check.py` の `INTERNAL` にも必ず足すこと。

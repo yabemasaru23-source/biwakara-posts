@@ -18,6 +18,8 @@
 import base64, io, json, os, subprocess
 from PIL import Image
 
+import check
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 SRC = os.path.join(HERE, "src")
 OUT = os.path.join(os.path.dirname(HERE), "images")
@@ -131,6 +133,7 @@ def slide_deco(i, p, solid):
 
 
 def render_slide(name, p, solid, no, text):
+    check.image_text(name, [text], allow=("seq",))
     n = max(len(x) for x in text.split('\n'))
     size = 78 if n <= 12 else (66 if n <= 16 else 56)
     html = SLIDE_TPL.format(bg=(p["c"] if solid else CREAM),
@@ -172,6 +175,9 @@ def photo_uri(name, w, h):
 
 
 def render(name, cfg, p, theme, cap, num, sub=""):
+    # 画像に焼く文字は、焼く前に検査する（管理ラベルの混入を止める）
+    allow = ("day",) if name.startswith("d") and "_" not in name else ()
+    check.image_text(name, [theme, cap, sub, num], allow=allow)
     n = len(cap)
     size = cfg["W"] // (9 if n <= 11 else (11 if n <= 15 else 14))
     if cfg is HERO:

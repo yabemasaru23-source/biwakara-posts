@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 """template.html + posts.json + images/*.png から自己完結の index.html を組み立てる。"""
-import base64, hashlib, io, json, os, re
+import base64, hashlib, io, json, os, re, sys
+
+import check
 from PIL import Image
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -13,6 +15,15 @@ BASE_TAGS = ["びわから基金", "出島福祉村", "親亡き後", "長崎", 
 
 def main():
     posts = json.load(open(os.path.join(HERE, "posts.json"), encoding="utf-8"))
+
+    try:
+        checked = check.run(posts)
+    except check.CheckError as e:
+        print("検査で止めました:")
+        print("  " + str(e))
+        sys.exit(1)
+    print("検査 OK:", checked, "件")
+
     names = ["hero"] + ["L" + x["id"] for x in posts["launch"]]         + [x["id"] for x in posts["series"]]
     slides = []
     for d in posts["days"]:
