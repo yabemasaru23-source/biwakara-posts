@@ -246,12 +246,14 @@ def main(only=None):
 
     for i, d in enumerate(posts["days"]):
         p = PALETTE[i % 5]
-        if not want(d["id"]):
-            continue
-        render(d["id"], SQ, p, d["theme"], d["cap"], "DAY %02d" % d["day"])
-        n += 1
+        if want(d["id"]):
+            render(d["id"], SQ, p, d["theme"], d["cap"], "DAY %02d" % d["day"])
+            n += 1
         for j, text in enumerate(d.get("igslides", [])):
-            render_slide("%s_%d" % (d["id"], j + 2), p, j % 2 == 0, j + 2, text)
+            nm = "%s_%d" % (d["id"], j + 2)
+            if not want(nm):
+                continue
+            render_slide(nm, p, j % 2 == 0, j + 2, text)
             n += 1
 
     print("generated", n, "images")
