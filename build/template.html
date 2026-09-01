@@ -589,7 +589,12 @@ dialog img{width:100%;height:auto;border-radius:18px;display:block}
           '<figcaption>' + (i + 1) + ' / ' + keys.length +
           ' <a href="' + RAW + k + '.jpg" target="_blank" rel="noopener">原寸</a>' +
           '</figcaption></figure>';
-      }).join('') + '</div></div>';
+      }).join('') + '</div>' +
+      '<p class="warnline">順番がずれるときは、1→4の順に1枚ずつ保存してください' +
+      '（カメラロールは保存した時刻順に並びます）。Instagramの複数選択は' +
+      'タップした順に番号が付きます。2枚目以降には「2 / 4」の表示があるので、' +
+      '投稿前のプレビューで並びを確かめられます。</p>' +
+      '</div>';
   }
 
   function igCard(it) {
