@@ -42,3 +42,10 @@ python build.py        # template.html + posts.json + images → ../index.html
 
 例外として「DAY nn」は10日分の表紙のみ、「n / 4」はカルーセルの中身のみ許可。
 新しい管理ラベルを増やしたら `check.py` の `INTERNAL` にも必ず足すこと。
+
+## 画像だけの一覧ページ
+
+https://yabemasaru23-source.github.io/biwakara-posts/images.html
+
+スマホから開いて、その日の4枚をすぐ保存するためのページ。`build/gen_gallery.py` が生成し、
+`build.py` から自動で呼ばれる。data URI を使わず images/ の実ファイルを参照するので軽い。

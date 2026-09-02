@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """template.html + posts.json + images/*.png から自己完結の index.html を組み立てる。"""
-import base64, hashlib, io, json, os, re, sys
+import base64, hashlib, io, json, os, re, subprocess, sys
 
 import check
 from PIL import Image
@@ -67,6 +67,7 @@ def main():
             lambda m: m.group(1) + kept + m.group(2), out, count=1, flags=re.S)
 
     open(dest, "w", encoding="utf-8").write(out)
+    subprocess.run([sys.executable, os.path.join(HERE, "gen_gallery.py")], check=True)
     print("built", dest, round(len(out.encode("utf-8")) / 1024), "KB",
           "/ images:", len(images),
           "/ 引き継いだ承認・数字:", "あり" if kept else "なし")
