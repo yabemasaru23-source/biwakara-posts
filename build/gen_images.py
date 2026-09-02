@@ -88,10 +88,10 @@ h1{{font-family:"Shippori Mincho",serif;font-weight:700;
 </style></head><body>
 <div class="photo"></div><div class="scrim"></div>
 <div class="wrap">
-  <div class="top"><span class="badge">びわから基金</span><span class="acct">@biwakara_fund</span></div>
+  <div class="top"><span class="badge">みんなのびわから基金</span><span class="acct">@biwakara_fund</span></div>
   <div class="mid"><div>{theme}<h1>{cap}</h1>{sub}</div></div>
   <div class="bot">
-    <div class="org">社会福祉法人 出島福祉村<small>長崎 ／ びわから基金プロジェクト</small></div>
+    <div class="org">社会福祉法人 出島福祉村<small>長崎 ／ みんなのびわから基金プロジェクト</small></div>
     {num}
   </div>
 </div></body></html>"""
@@ -106,7 +106,7 @@ body{{position:relative;background:{bg};color:{fg};
 svg.deco{{position:absolute;inset:0;width:1080px;height:1080px}}
 .wrap{{position:absolute;inset:0;padding:96px;display:flex;flex-direction:column}}
 .top{{display:flex;align-items:center;justify-content:space-between;gap:16px}}
-.badge{{font-family:"Shippori Mincho",serif;font-weight:700;font-size:25px;
+.badge{{font-family:"Shippori Mincho",serif;font-weight:700;font-size:22px;
   border:2px solid {fg};border-radius:999px;padding:6px 22px;letter-spacing:.08em}}
 .pageno{{font-family:"Shippori Mincho",serif;font-size:25px;font-weight:700;opacity:.55}}
 .mid{{flex:1;display:flex;align-items:center}}
@@ -116,7 +116,7 @@ h1{{font-family:"Shippori Mincho",serif;font-weight:700;font-size:{size}px;
 </style></head><body>
 <svg class="deco" viewBox="0 0 1080 1080" aria-hidden="true">{deco}</svg>
 <div class="wrap">
-  <div class="top"><span class="badge">びわから基金</span><span class="pageno">{no} / 4</span></div>
+  <div class="top"><span class="badge">みんなのびわから基金</span><span class="pageno">{no} / 4</span></div>
   <div class="mid"><h1>{text}</h1></div>
   <div class="bot">社会福祉法人 出島福祉村 ／ @biwakara_fund</div>
 </div></body></html>"""
@@ -150,9 +150,9 @@ def render_slide(name, p, solid, no, text):
     Image.open(png).convert("RGB").save(os.path.join(OUT, name + ".jpg"), "JPEG", quality=90)
 
 
-SQ = dict(W=1080, H=1080, pad=76, bs=25, bp=7, bp2=22, as_=23, ts=26, tm=20,
+SQ = dict(W=1080, H=1080, pad=76, bs=22, bp=7, bp2=22, as_=23, ts=26, tm=20,
           ss=25, sm=18, bm=52, os=26, oss=19, ns=58, pos="center")
-HERO = dict(W=1720, H=430, pad=44, bs=21, bp=5, bp2=18, as_=19, ts=19, tm=10,
+HERO = dict(W=1720, H=430, pad=44, bs=19, bp=5, bp2=18, as_=19, ts=19, tm=10,
             ss=21, sm=12, bm=26, os=20, oss=15, ns=36, pos="center 62%")
 
 
@@ -229,7 +229,7 @@ def main(only=None):
         return only is None or x in only
 
     if want("hero"):
-        render("hero", HERO, PALETTE[0], "PROJECT", "びわから基金プロジェクト", "",
+        render("hero", HERO, PALETTE[0], "PROJECT", "みんなのびわから基金プロジェクト", "",
                sub="「親亡き後」の不安を、日本からなくす。長崎から、10,000人の応援団をつくります。")
         n += 1
 
