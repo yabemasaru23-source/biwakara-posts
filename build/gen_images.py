@@ -73,7 +73,7 @@ body{{position:relative;background:{deep};
 .theme{{font-size:{ts}px;font-weight:700;letter-spacing:.14em;margin-bottom:{tm}px;
   color:{c};text-shadow:0 1px 8px {deep}}}
 h1{{font-family:"Shippori Mincho",serif;font-weight:700;
-  font-size:{size}px;line-height:1.42;letter-spacing:.02em;text-wrap:balance;
+  font-size:{size}px;line-height:1.42;letter-spacing:.02em;white-space:pre-line;
   text-shadow:0 2px 18px {deep}}}
 .sub{{font-size:{ss}px;font-weight:500;opacity:.95;margin-top:{sm}px;line-height:1.7;
   text-shadow:0 1px 10px {deep}}}
@@ -178,7 +178,7 @@ def render(name, cfg, p, theme, cap, num, sub=""):
     # 画像に焼く文字は、焼く前に検査する（管理ラベルの混入を止める）
     allow = ("day",) if name.startswith("d") and "_" not in name else ()
     check.image_text(name, [theme, cap, sub, num], allow=allow)
-    n = len(cap)
+    n = max(len(x) for x in cap.split('\n'))
     size = cfg["W"] // (9 if n <= 11 else (11 if n <= 15 else 14))
     if cfg is HERO:
         size = 62
@@ -205,14 +205,13 @@ def render(name, cfg, p, theme, cap, num, sub=""):
 
 # 投稿画像には通し番号を載せない。「案 A」「放送翌日」「DAY 02」はいずれも
 # こちらの管理用で、読む人には意味がない。
-# 「放送翌日」「3 / 4」「案 A」はこちらの都合であって、読む人には意味がないため。
-LAUNCH = [("A", "", "はじめまして。"),
-          ("B", "", "日本から、なくす。"),
-          ("C", "", "もしも、を考える。")]
-SERIES = [("s1", "", "年に1度と、365日。"),
-          ("s2", "", "感動の、前にあるもの。"),
-          ("s3", "", "寄付だけが、方法ではない。"),
-          ("s4", "", "あの1日で、終わらない。")]
+LAUNCH = [("A", "", "はじめまして"),
+          ("B", "", "日本から" + '\n' + "なくす"),
+          ("C", "", "もしもを" + '\n' + "考える")]
+SERIES = [("s1", "", "年に1度と" + '\n' + "365日"),
+          ("s2", "", "感動の前に" + '\n' + "あるもの"),
+          ("s3", "", "寄付だけが" + '\n' + "方法ではない"),
+          ("s4", "", "あの1日で" + '\n' + "終わらない")]
 
 
 def main(only=None):
