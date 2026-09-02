@@ -203,7 +203,8 @@ def render(name, cfg, p, theme, cap, num, sub=""):
     return jpg
 
 
-# 一発目と連動シリーズは、テーマ名も通し番号も載せない。
+# 投稿画像には通し番号を載せない。「案 A」「放送翌日」「DAY 02」はいずれも
+# こちらの管理用で、読む人には意味がない。
 # 「放送翌日」「3 / 4」「案 A」はこちらの都合であって、読む人には意味がないため。
 LAUNCH = [("A", "", "はじめまして。"),
           ("B", "", "日本から、なくす。"),
@@ -247,7 +248,7 @@ def main(only=None):
     for i, d in enumerate(posts["days"]):
         p = PALETTE[i % 5]
         if want(d["id"]):
-            render(d["id"], SQ, p, d["theme"], d["cap"], "DAY %02d" % d["day"])
+            render(d["id"], SQ, p, d["theme"], d["cap"], "")
             n += 1
         for j, text in enumerate(d.get("igslides", [])):
             nm = "%s_%d" % (d["id"], j + 2)

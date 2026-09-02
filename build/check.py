@@ -44,8 +44,8 @@ def _internal(text, allow=()):
     # 「3 / 4」形式の通し番号
     if "seq" not in allow and re.search(r"\d\s*/\s*\d", text):
         hits.append("連番（n / n）")
-    # 「DAY 03」形式
-    if "day" not in allow and re.search(r"DAY\s*\d", text, re.I):
+    # 「DAY 03」形式。例外は設けない（2026-09-02 に表紙から全廃）
+    if re.search(r"DAY\s*\d", text, re.I):
         hits.append("DAY nn")
     return hits
 
