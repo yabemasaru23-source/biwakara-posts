@@ -9,9 +9,11 @@
    - hero   : 1720x430（ページ上部の帯）
 
    使わない素材（意図的に除外）:
-     story_yakei / story_onsen / furo01 … 温泉の原体験は理事長の最終確認が必要な題材
-     work_003                          … 利用者の顔が写っており、SNSでの二次利用の同意範囲が不明
-     nakigao01                         … 同情訴求に読まれうる
+     work_003  … 利用者の顔が写っており、SNSでの二次利用の同意範囲が不明
+     nakigao01 … 同情訴求に読まれうる
+   ※ story_yakei（露天風呂からの夜景）は 2026-09-10 に公式サイトの
+     「FOUNDER'S MESSAGE この基金への想い」に本文ごと掲載済みと確認したため解禁。
+     ただし人物が写っていないものに限る。
 
    素材は src/ に置く（fetch_src.py で公式サイトのリポジトリから取得）。
 """
@@ -51,6 +53,7 @@ PHOTO = {
     "d09": "work_005.jpg",    # 寄付の設計＝現場
     "d10": "farm01.jpg",      # これから＝畑
 }
+PHOTO_NOW = dict(PHOTO)
 
 TPL = """<!doctype html><html><head><meta charset="utf-8">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@600;700&family=Zen+Kaku+Gothic+New:wght@500;700&display=swap">
@@ -156,6 +159,14 @@ HERO = dict(W=1720, H=430, pad=44, bs=19, bp=5, bp2=18, as_=19, ts=19, tm=10,
             ss=21, sm=12, bm=26, os=20, oss=15, ns=36, pos="center 62%")
 
 
+def photo_for(name, posts):
+    """posts.json に photo があればそれを使う。無ければ PHOTO 表から。"""
+    for d in posts["days"]:
+        if d["id"] == name and d.get("photo"):
+            return d["photo"]
+    return PHOTO.get(name)
+
+
 def photo_uri(name, w, h):
     """素材を目的の比率に切り出して data URI にする。"""
     im = Image.open(os.path.join(SRC, name)).convert("RGB")
@@ -178,15 +189,20 @@ def render(name, cfg, p, theme, cap, num, sub=""):
     # 画像に焼く文字は、焼く前に検査する（管理ラベルの混入を止める）
     allow = ("day",) if name.startswith("d") and "_" not in name else ()
     check.image_text(name, [theme, cap, sub, num], allow=allow)
-    n = max(len(x) for x in cap.split('\n'))
-    size = cfg["W"] // (9 if n <= 11 else (11 if n <= 15 else 14))
+    lines = cap.split('\n')
+    n = max(len(x) for x in lines)
+    # 使える横幅から逆算する。折り返して枠からはみ出すのを防ぐ
+    avail = cfg["W"] - cfg["pad"] * 2
+    size = min(cfg["W"] // 9, int(avail / n * 0.97))
+    if len(lines) >= 3:
+        size = int(size * 0.85)
     if cfg is HERO:
         size = 62
     theme_html = ('<div class="theme">%s</div>' % theme) if theme else ""
     num_html = ('<div class="num">%s</div>' % num) if num else ""
     html = TPL.format(c=p["c"], deep=p["deep"], cream=CREAM,
                       theme=theme_html, cap=cap, num=num_html,
-                      img=photo_uri(PHOTO[name], cfg["W"], cfg["H"]),
+                      img=photo_uri(PHOTO_NOW[name], cfg["W"], cfg["H"]),
                       sub=('<div class="sub">%s</div>' % sub) if sub else "",
                       size=size, **cfg)
     src = os.path.join(TMP, name + ".html")
@@ -216,6 +232,11 @@ SERIES = [("s1", "", "年に1度と" + '\n' + "365日"),
 
 def main(only=None):
     posts = json.load(open(os.path.join(HERE, "posts.json"), encoding="utf-8"))
+    global PHOTO_NOW
+    PHOTO_NOW = dict(PHOTO)
+    for d in posts["days"]:
+        if d.get("photo"):
+            PHOTO_NOW[d["id"]] = d["photo"]
     os.makedirs(OUT, exist_ok=True)
     os.makedirs(TMP, exist_ok=True)
     if only is None:
@@ -244,8 +265,9 @@ def main(only=None):
         render(k, SQ, PALETTE[(i + 2) % 5], theme, cap, "")
         n += 1
 
+    TONE = {"amber": 0, "leaf": 1, "sea": 2, "sun": 3, "clay": 4}
     for i, d in enumerate(posts["days"]):
-        p = PALETTE[i % 5]
+        p = PALETTE[TONE.get(d.get("tone"), i % 5)]
         if want(d["id"]):
             render(d["id"], SQ, p, d["theme"], d["cap"], "")
             n += 1
