@@ -106,6 +106,22 @@ h2::before{content:"";width:13px;height:13px;border-radius:50%;background:var(--
   font-variant-numeric:tabular-nums;line-height:1.15;color:var(--c)}
 .tile .k{font-size:11.5px;color:var(--ink2)}
 
+@keyframes pulse{
+  0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--c) 60%,transparent)}
+  70%{box-shadow:0 0 0 14px color-mix(in srgb,var(--c) 0%,transparent)}
+  100%{box-shadow:0 0 0 0 color-mix(in srgb,var(--c) 0%,transparent)}
+}
+.card.now{border-color:var(--c);border-width:2px;animation:pulse 2.4s ease-in-out infinite}
+.todaybar{background:color-mix(in srgb,var(--c1) 13%,var(--surface));
+  border:2px solid var(--c1);border-radius:var(--radius);padding:20px 24px;
+  display:flex;flex-direction:column;gap:6px}
+.todaybar .d{font-family:"Shippori Mincho",serif;font-size:30px;font-weight:700;color:var(--c1);
+  line-height:1.2}
+.todaybar .w{font-size:13px;color:var(--ink2)}
+.todaybar .msg{font-family:"Shippori Mincho",serif;font-size:17px;font-weight:700;margin-top:4px}
+.doneline{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:var(--surface2);
+  border-radius:999px;padding:9px 18px;font-size:13px;color:var(--ink2)}
+.doneline b{color:var(--c2);font-weight:700}
 .tabs{display:flex;gap:7px;flex-wrap:wrap}
 .tabs button{padding:10px 20px;font-size:14px;color:var(--ink2);border-radius:999px;
   border:1px solid var(--line);background:var(--surface);transition:all .15s}
@@ -345,8 +361,8 @@ dialog img{width:100%;height:auto;border-radius:18px;display:block}
   var ns = null, mode = 'pending', root = null, editing = null, timer = null;
   var lastSaved = JSON.stringify(state);
   var media = {};
-  var tab = 'plan';
-  try { tab = sessionStorage.getItem('biwakara-tab') || 'plan'; } catch (e) {}
+  var tab = 'today';
+  try { tab = sessionStorage.getItem('biwakara-tab') || 'today'; } catch (e) {}
 
   /* ---------- items ---------- */
   var ITEMS = [];
@@ -839,6 +855,68 @@ dialog img{width:100%;height:auto;border-radius:18px;display:block}
       'まだ選ばれていません。A・B・C の丸を押して、一発目に出す案を1つ決めてください。</div>';
   }
 
+  function todayView() {
+    var t = todayISO();
+    var p2 = t.split('-');
+    var dt = new Date(+p2[0], +p2[1] - 1, +p2[2]);
+    var head = '<div class="todaybar tone1"><span class="d">' + (+p2[1]) + '月' + (+p2[2]) + '日' +
+      '</span><span class="w">' + WD[dt.getDay()] + '曜日</span>';
+
+    var openToday = [], doneToday = [];
+    ITEMS.forEach(function (it) {
+      if (dateOf(it.id) !== t) { return; }
+      (get(it.id).status === 'posted' ? doneToday : openToday).push(it);
+    });
+
+    /* 日付が入っていなければ、順番の次にくる未投稿を「次に出すもの」として拾う */
+    var nxt = [];
+    if (!openToday.length) {
+      ['x', 'ig'].forEach(function (med) {
+        var hit = null;
+        ITEMS.forEach(function (it) {
+          if (hit) { return; }
+          var isIg = it.group === 'ig';
+          if ((med === 'ig') !== isIg) { return; }
+          if (it.group === 'launch') { return; }
+          var stt = get(it.id).status || 'none';
+          if (stt === 'posted' || stt === 'hold') { return; }  /* 要修正は確認待ちなので飛ばす */
+          hit = it;
+        });
+        if (hit) { nxt.push(hit); }
+      });
+    }
+
+    var msg = openToday.length ? 'この' + openToday.length + '本を出します。'
+      : doneToday.length ? '今日のぶんは出し終えました。おつかれさまです。'
+      : '日付を入れていないので、順番の次を出します。';
+    head += '<span class="msg">' + esc(msg) + '</span></div>';
+
+    var out = head;
+
+    if (doneToday.length) {
+      out += '<div class="doneline"><b>今日すでに出したもの</b>' +
+        doneToday.map(function (it) {
+          return esc((it.group === 'ig' ? 'Instagram' : 'X') + '「' + it.name + '」');
+        }).join('　／　') + '</div>';
+    }
+
+    var show = openToday.length ? openToday : nxt;
+    if (!show.length) {
+      out += '<div class="empty">出す予定のものがありません。<br>' +
+        '「X の投稿」か「Instagram」のタブで、次に出すものを選んでください。</div>';
+      return out;
+    }
+
+    out += '<section class="tone1"><div class="sechead"><h2>' +
+      (openToday.length ? 'きょう出すもの' : '次に出すもの') + '</h2>' +
+      '<p class="lede">画像を先に保存してから、投稿画面をひらいてください。</p></div>' +
+      '<div class="stack">' + show.map(function (it) {
+        return (it.group === 'ig' ? igCard(it) : card(it)).replace('<article class="card',
+          '<article class="card now');
+      }).join('') + '</div></section>';
+    return out;
+  }
+
   function planView() {
     var open = function (g) {
       return ITEMS.filter(function (it) {
@@ -969,12 +1047,15 @@ dialog img{width:100%;height:auto;border-radius:18px;display:block}
       progressStrip() +
       tiles() +
       '<div class="tabs">' +
+        '<button data-act="tab" data-val="today"' + (tab === 'today' ? ' class="on"' : '') + '>きょう</button>' +
         '<button data-act="tab" data-val="plan"' + (tab === 'plan' ? ' class="on"' : '') + '>X の投稿</button>' +
         '<button data-act="tab" data-val="ig"' + (tab === 'ig' ? ' class="on"' : '') + '>Instagram（週3回・3案から選ぶ）</button>' +
         '<button data-act="tab" data-val="done"' + (tab === 'done' ? ' class="on"' : '') + '>投稿済みと数字</button>' +
       '</div>' +
       handoffBar() +
-      (tab === 'done' ? doneView() : (tab === 'ig' ? igView() : planView())) +
+      (tab === 'today' ? todayView()
+        : tab === 'done' ? doneView()
+        : tab === 'ig' ? igView() : planView()) +
       '<footer>' +
         '<p><b>素材</b>　びわから基金部門 CLAUDE.md 知識アーカイブ／SNS開設完了報告_投稿サンプル選定_2026-08-28.pdf</p>' +
         '<p><b>数字の入れ方</b>　Xは投稿の「アナリティクスを表示」、Instagramは投稿のインサイトから転記します。自動取得にはAPIの契約が必要なため、現状は手入力です。</p>' +

@@ -2,7 +2,7 @@
 """画像だけを一覧する軽いページ（images.html）を作る。
    スマホから開いて、その日の4枚をすぐ保存できるようにするためのもの。
    data URI を使わず images/ の実ファイルを直接参照するので軽い。"""
-import json, os
+import json, os, re, datetime
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 SITE = os.path.dirname(HERE)
@@ -30,6 +30,18 @@ section{display:flex;flex-direction:column;gap:12px}
 h2{font-family:"Shippori Mincho",serif;font-size:18px;font-weight:700;
   display:flex;align-items:center;gap:9px;flex-wrap:wrap}
 h2 em{font-style:normal;font-size:12.5px;color:var(--ink2);font-weight:500}
+.badge{font-size:11px;font-weight:700;border-radius:999px;padding:3px 11px;white-space:nowrap}
+.b-done{background:#DFEFE5;color:#2C6B48}
+.b-now{background:#E2892B;color:#fff}
+.b-next{background:#F4EDDF;color:#7B6B55}
+.date{font-family:"Roboto Mono",monospace;font-size:12px;color:#7B6B55;font-variant-numeric:tabular-nums}
+@media(prefers-color-scheme:dark){.b-done{background:#22402F;color:#8FD3AC}
+  .b-next{background:#2C251A;color:#AC9C85}.date{color:#AC9C85}}
+section.now{border:2px solid #E2892B;border-radius:14px;padding:13px;
+  animation:pulse 2.4s ease-in-out infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(226,137,43,.55)}
+  70%{box-shadow:0 0 0 14px rgba(226,137,43,0)}100%{box-shadow:0 0 0 0 rgba(226,137,43,0)}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important}}
 .row{display:grid;grid-template-columns:repeat(4,1fr);gap:9px}
 .row.one{grid-template-columns:repeat(2,1fr);max-width:380px}
 figure{display:flex;flex-direction:column;gap:5px}
@@ -44,6 +56,8 @@ footer a{color:var(--c)}
 </style></head><body><div class="wrap">
 <h1>投稿画像 一覧</h1>
 <p class="lead">みんなのびわから基金プロジェクト ／ 投稿に使う画像をここにまとめています。</p>
+<div class="how"><b>色の見かた</b>　<span class="badge b-now">きょう出す</span> が今日ぶんです。
+<span class="badge b-done">投稿ずみ</span> は済み、<span class="badge b-next">これから</span> はまだです。</div>
 <div class="how"><b>保存のしかた</b>　画像を長押し（PCは右クリック）して保存します。
 Instagramのカルーセルは、<b>1→4の順に1枚ずつ</b>保存してください。
 カメラロールが保存した順に並ぶので、投稿時に順番がずれません。
@@ -62,9 +76,36 @@ def fig(name, cap):
             '<figcaption>%s</figcaption></figure>' % (name, name, cap))
 
 
+def read_state():
+    """投稿サイトの記録から、日付と投稿状況を読む。"""
+    f = os.path.join(SITE, "index.html")
+    if not os.path.exists(f):
+        return {"items": {}, "dates": {}}
+    m = re.search(r'<script id="app-state" type="application/json">(.*?)</script>',
+                  open(f, encoding="utf-8").read(), re.S)
+    try:
+        st = json.loads(m.group(1))
+    except Exception:
+        return {"items": {}, "dates": {}}
+    return {"items": st.get("items", {}), "dates": st.get("dates", {})}
+
+
 def main():
     posts = json.load(open(os.path.join(HERE, "posts.json"), encoding="utf-8"))
     out = [HEAD]
+
+    state = read_state()
+    today = datetime.date.today().isoformat()
+
+    def tag(key):
+        st = state["items"].get(key, {})
+        dt = state["dates"].get(key, "")
+        d2 = ("<span class='date'>%s</span>" % dt[5:].replace("-", "/")) if dt else ""
+        if st.get("status") == "posted":
+            return d2 + "<span class='badge b-done'>投稿ずみ</span>", False
+        if dt == today:
+            return d2 + "<span class='badge b-now'>きょう出す</span>", True
+        return d2 + "<span class='badge b-next'>これから</span>", False
 
     out.append('<section><h2>Instagram <em>4枚のカルーセル。1→4の順に保存</em></h2></section>')
     for i, d in enumerate(posts["days"]):
@@ -73,14 +114,16 @@ def main():
         keys = [k for k in keys if os.path.exists(os.path.join(SITE, "images", k + ".jpg"))]
         if not keys:
             continue
-        out.append('<section><h2>第%d回　%s<em>%s</em></h2><div class="row">%s</div></section>'
-                   % (i + 1, d["theme"], d["cap"],
+        t, now = tag("i%02d" % (i + 1))
+        out.append('<section class="%s"><h2>第%d回　%s%s</h2><div class="row">%s</div></section>'
+                   % ("now" if now else "", i + 1, d["theme"], t,
                       "".join(fig(k, "%d / %d" % (n + 1, len(keys))) for n, k in enumerate(keys))))
 
-    xs = [(d["id"], "第%d回 %s" % (i + 1, d["theme"])) for i, d in enumerate(posts["days"])]
-    out.append('<section><h2>X <em>1投稿につき1枚（Instagramの表紙と同じもの）</em></h2>'
-               '<div class="row">%s</div></section>'
-               % "".join(fig(k, c.split(" ")[1]) for k, c in xs))
+    out.append('<section><h2>X <em>1投稿につき1枚</em></h2></section>')
+    for d in posts["days"]:
+        t, now = tag(d["id"])
+        out.append('<section class="%s"><h2>%s%s</h2><div class="row one">%s</div></section>'
+                   % ("now" if now else "", d["theme"], t, fig(d["id"], "X用")))
 
     out.append('<section><h2>一発目の3案</h2><div class="row one">%s</div></section>'
                % "".join(fig("L" + d["id"], "案" + d["id"]) for d in posts["launch"]))
