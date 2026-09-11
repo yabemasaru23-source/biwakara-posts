@@ -27,6 +27,7 @@ HASHTAG = re.compile(r"[#＃]\S")
 URL = re.compile(r"https?://")
 
 X_LIMIT = 140
+IG_TAG_MAX = 5   # Instagram は6個目以降が無効化される（2026-09-11 実投稿で確認）
 IG_LIMIT = 2200
 
 
@@ -84,6 +85,8 @@ def post_text(name, media, text, tags=None):
         if n > X_LIMIT:
             bad.append("%d字（140字を超過）" % n)
     else:
+        if tags and len(tags) > IG_TAG_MAX:
+            bad.append("ハッシュタグ%d個（Instagramは%d個まで）" % (len(tags), IG_TAG_MAX))
         full = n + (sum(len(t) + 2 for t in tags) if tags else 0)
         if URL.search(text):
             bad.append("本文中のURL")
