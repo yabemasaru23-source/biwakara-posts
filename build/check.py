@@ -26,6 +26,27 @@ EMOJI = re.compile(
 HASHTAG = re.compile(r"[#＃]\S")
 URL = re.compile(r"https?://")
 
+# 投稿画像に使ってはいけない素材。理由を消さずに残すこと。
+# 一度でも公開してしまうと取り返せないので、ビルドを止める側に倒している。
+BAN_PHOTO = {
+    "ikeda":     "理事長ご本人が写真の使用を望まれない（2026-09-11）",
+    "work_003":  "利用者の顔が写っており、二次利用の同意範囲が不明",
+    "nakigao":   "同情訴求に読まれうる",
+    "furo01":    "介助の場面を描いたイラスト。受信者テスト未了",
+}
+
+
+def photo(name):
+    """素材ファイル名を検査する。禁止のものが来たらビルドを止める。"""
+    low = name.lower()
+    for key, why in BAN_PHOTO.items():
+        if key in low:
+            raise SystemExit(
+            "使ってはいけない素材です: %s\n  理由: %s\n"
+            "  ほかの素材に差し替えてください。" % (name, why))
+    return name
+
+
 X_LIMIT = 140
 IG_TAG_MAX = 5   # Instagram は6個目以降が無効化される（2026-09-11 実投稿で確認）
 IG_LIMIT = 2200

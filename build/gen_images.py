@@ -11,7 +11,9 @@
    使わない素材（意図的に除外）:
      work_003  … 利用者の顔が写っており、SNSでの二次利用の同意範囲が不明
      nakigao01 … 同情訴求に読まれうる
-     ikeda003  … 背景がTOKYO2020。叙勲や福祉の話に添えると誤読される
+     ikeda*    … 理事長ご本人が写真の使用を望まれないため、全点使わない
+                 （2026-09-11 ご本人の意向を受けて全廃。check.BAN_PHOTO で機械的に止める）
+     furo01    … 介助の場面を描いたイラスト。受信者テスト未了
    ※ story_yakei（露天風呂からの夜景）は 2026-09-10 に公式サイトの
      「FOUNDER'S MESSAGE この基金への想い」に本文ごと掲載済みと確認したため解禁。
      ただし人物が写っていないものに限る。
@@ -41,29 +43,29 @@ CREAM = "#FFF9EF"
 # どの写真をどこに使うか
 PHOTO = {
     "hero": "farm01.jpg",
-    "LA": "ikeda04.png", "LB": "biwa01.jpeg", "LC": "biwa02.jpeg",
+    "LA": "story_yakei.jpg", "LB": "biwa01.jpeg", "LC": "biwa02.jpeg",
     "s1": "work_001.jpg", "s2": "work_002.jpg", "s3": "work_004.jpg", "s4": "work_005.jpg",
     # d01〜d20 は posts.json の "photo" が正。ここは保険の既定値
     "d01": "facility01.jpg",
     "d02": "work01.jpg",
     "d03": "biwa02.jpeg",
     "d04": "work_004.jpg",
-    "d05": "ikeda001.png",
-    "d06": "work01.jpg",
+    "d05": "story_yakei.jpg",
+    "d06": "story_onsen.jpg",
     "d07": "work_002.jpg",
     "d08": "jam01.jpg",
     "d09": "work_005.jpg",
     "d10": "farm01.jpg",
-    "d11": "ikeda002.png",
+    "d11": "facility01.jpg",
     "d12": "story_onsen.jpg",
     "d13": "story_yakei.jpg",
-    "d14": "ikeda001.png",
+    "d14": "work01.jpg",
     "d15": "facility01.jpg",
     "d16": "biwa01.jpeg",
     "d17": "jam01.jpg",
     "d18": "work_001.jpg",
-    "d19": "ikeda002.png",
-    "d20": "ikeda777.png",
+    "d19": "work_002.jpg",
+    "d20": "work_004.jpg",
 }
 PHOTO_NOW = dict(PHOTO)
 
@@ -181,6 +183,7 @@ def photo_for(name, posts):
 
 def photo_uri(name, w, h):
     """素材を目的の比率に切り出して data URI にする。"""
+    check.photo(name)
     im = Image.open(os.path.join(SRC, name)).convert("RGB")
     sr, dr = im.width / im.height, w / h
     if sr > dr:                                  # 横に長い → 左右を切る
