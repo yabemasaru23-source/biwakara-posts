@@ -106,8 +106,13 @@ def run(posts):
         post_text(p["id"], "x", p["text"])
         n += 1
     for d in posts["days"]:
-        post_text(d["id"], "x", d["x"])
-        n += 1
+        if d.get("xv"):
+            for v in d["xv"]:
+                post_text("%s 案%s" % (d["id"], v["id"]), "x", v["text"])
+                n += 1
+        else:
+            post_text(d["id"], "x", d["x"])
+            n += 1
         for v in d.get("igv", []):
             post_text("%s 案%s" % (d["id"], v["id"]), "ig", v["text"], d["tags"])
             n += 1

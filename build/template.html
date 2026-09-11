@@ -333,7 +333,7 @@ dialog img{width:100%;height:auto;border-radius:18px;display:block}
 </style>
 
 <script id="app-data" type="application/json">__DATA__</script>
-<script id="app-state" type="application/json">{"chosen":null,"dates":{},"igPick":{},"items":{}}</script>
+<script id="app-state" type="application/json">{"chosen":null,"dates":{},"igPick":{},"xPick":{},"items":{}}</script>
 
 <script id="app-code">
 (function () {
@@ -380,6 +380,7 @@ dialog img{width:100%;height:auto;border-radius:18px;display:block}
     ITEMS.push({ id: d.id, group: 'day', name: d.theme,
       idx: 'DAY ' + (d.day < 10 ? '0' : '') + d.day,
       when: '', media: ['x'], x: d.x, ig: '', tags: [],
+      xv: d.xv || null,
       check: d.check, img: DATA.images[d.id] || null, tone: (i % 5) + 1 });
     ITEMS.push({ id: 'i' + d.id.slice(1), group: 'ig', name: d.theme,
       idx: '第' + d.day + '回', when: '', media: ['ig'], x: '',
@@ -400,17 +401,24 @@ dialog img{width:100%;height:auto;border-radius:18px;display:block}
     if (!state.items[id].m) { state.items[id].m = {}; }
     return state.items[id];
   }
-  function pickedVariant(it) {
-    var v = (state.igPick || {})[it.id];
+  function variantsOf(it, med) {
+    return med === 'ig' ? (it.variants || null) : (it.xv || null);
+  }
+  function pickKey(med) { return med === 'ig' ? 'igPick' : 'xPick'; }
+  function pickedVariant(it, med) {
+    med = med || 'ig';
+    var list = variantsOf(it, med);
+    if (!list) { return null; }
+    var v = (state[pickKey(med)] || {})[it.id];
     var hit = null;
-    it.variants.forEach(function (x) { if (x.id === v) { hit = x; } });
+    list.forEach(function (x) { if (x.id === v) { hit = x; } });
     return hit;
   }
   function textOf(id, med) {
     var r = get(id), it = BY_ID[id];
-    if (it.group === 'ig' && med === 'ig') {
-      if (r.ig !== undefined && r.ig !== null) { return r.ig; }
-      var pv = pickedVariant(it);
+    if (variantsOf(it, med)) {
+      if (r[med] !== undefined && r[med] !== null) { return r[med]; }
+      var pv = pickedVariant(it, med);
       return pv ? pv.text : '';
     }
     return (r[med] !== undefined && r[med] !== null) ? r[med] : it[med];
@@ -418,8 +426,8 @@ dialog img{width:100%;height:auto;border-radius:18px;display:block}
   function edited(id, med) {
     var r = state.items[id], it = BY_ID[id];
     if (!r || r[med] === undefined || r[med] === null) { return false; }
-    if (it.group === 'ig') {
-      var pv = pickedVariant(it);
+    if (variantsOf(it, med)) {
+      var pv = pickedVariant(it, med);
       return !!pv && r[med] !== pv.text;
     }
     return r[med] !== it[med];
@@ -508,6 +516,9 @@ dialog img{width:100%;height:auto;border-radius:18px;display:block}
         }).join('') + '</div>'
       : '<div class="mediatabs"><button class="on" disabled>X</button></div>';
 
+    var vlist = variantsOf(it, med);
+    var picked = vlist ? ((state[pickKey(med)] || {})[it.id] || null) : null;
+
     var bodyHtml = isEditing
       ? '<textarea data-edit="' + it.id + ':' + med + '">' + esc(textOf(it.id, med)) + '</textarea>' +
         (med === 'ig' && it.tags.length
@@ -520,7 +531,24 @@ dialog img{width:100%;height:auto;border-radius:18px;display:block}
           ? '<span class="spacer"></span><button class="btn ghost" data-act="reset" data-id="' +
             it.id + '" data-val="' + med + '">元の文面に戻す</button>' : '') +
         '</div>'
-      : '<div class="body">' + esc(txt) + '</div>' + meter(txt, med);
+      : vlist
+        ? ('<div class="pickbar' + (picked ? ' set' : '') + '">' +
+            '<span class="mark">' + (picked ? '&#10003;' : '?') + '</span>' +
+            (picked ? '案' + esc(picked) + ' に決まりました。ほかの案の丸を押すと差し替えられます。'
+                    : 'この回に出す案を、A・B・C から1つ選んでください。') + '</div>' +
+           '<div class="variants">' + vlist.map(function (v) {
+             var on = picked === v.id;
+             var t = on ? fullText(it.id, med) : v.text;
+             return '<div class="variant' + (on ? ' on' : (picked ? ' off' : '')) + '">' +
+               '<button class="vpick" data-act="' + (med === 'ig' ? 'igpick' : 'xpick') +
+               '" data-id="' + it.id + '" data-val="' + v.id + '" aria-pressed="' +
+               (on ? 'true' : 'false') + '">' +
+               '<span class="radio">' + v.id + '</span>' +
+               '<span class="vl">' + esc(v.label) + (on ? '<br>選択中' : '') + '</span></button>' +
+               '<div class="vbody"><div class="body">' + esc(t) + '</div>' +
+               meter(t, med) + '</div></div>';
+           }).join('') + '</div>')
+        : '<div class="body">' + esc(txt) + '</div>' + meter(txt, med);
 
     var flags = (it.check && it.check.length)
       ? '<div class="flag"><b>公開前に確認すること</b>' +
@@ -544,7 +572,7 @@ dialog img{width:100%;height:auto;border-radius:18px;display:block}
         encodeURIComponent(txt) + '">X の投稿画面をひらく</a>'
       : '<a class="btn" target="_blank" rel="noopener" href="https://www.instagram.com/">Instagram をひらく</a>';
 
-    var acts = isEditing ? '' :
+    var acts = (isEditing || (vlist && !picked)) ? '' :
       '<div class="actions">' + seg + post +
       '<button class="btn" data-act="edit" data-id="' + it.id + '" data-val="' + med +
       '">文面を直す</button>' +
@@ -1268,12 +1296,14 @@ dialog img{width:100%;height:auto;border-radius:18px;display:block}
       render(); flush(); return;
     }
     if (act === 'media') { media[id] = val; editing = null; render(); return; }
-    if (act === 'igpick') {
-      if (!state.igPick) { state.igPick = {}; }
-      var cur = state.igPick[id] || null;
-      if (!val || cur === val) { delete state.igPick[id]; }
-      else { state.igPick[id] = val; }
-      if (state.items[id]) { delete state.items[id].ig; }   /* 案を変えたら手直しは外す */
+    if (act === 'igpick' || act === 'xpick') {
+      var pm = act === 'igpick' ? 'ig' : 'x';
+      var pk = pickKey(pm);
+      if (!state[pk]) { state[pk] = {}; }
+      var cur = state[pk][id] || null;
+      if (!val || cur === val) { delete state[pk][id]; }
+      else { state[pk][id] = val; }
+      if (state.items[id]) { delete state.items[id][pm]; }  /* 案を変えたら手直しは外す */
       editing = null; render(); flush(); return;
     }
     if (act === 'edit') { editing = id + ':' + val; render(); return; }
