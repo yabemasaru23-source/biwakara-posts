@@ -307,6 +307,48 @@ footer{border-top:1px solid var(--line);padding-top:24px;color:var(--ink2);font-
   display:flex;flex-direction:column;gap:8px}
 footer b{color:var(--ink);font-weight:700}
 
+
+/* ---- 投稿の記録（URLを貼って保存する）---- */
+.postbox{border:2px dashed var(--c);border-radius:16px;padding:15px 18px;
+  background:color-mix(in srgb,var(--c) 7%,var(--surface));
+  display:flex;flex-direction:column;gap:11px}
+.postbox .pbhead{font-size:13px;font-weight:700;color:var(--c)}
+.postbox .pbrow{display:flex;gap:9px;align-items:center;flex-wrap:wrap}
+.postbox input{flex:1;min-width:210px;background:var(--surface);border:1px solid var(--line);
+  border-radius:999px;padding:9px 16px;font-size:13px;color:var(--ink)}
+.postbox input.who{flex:0 1 190px;min-width:150px}
+.postbox .msg{font-size:12.5px;color:var(--over);font-weight:700;min-height:1px}
+.postbox .msg.ok{color:var(--ok)}
+/* ---- 画面下の固定バー（まとめて報告）---- */
+#dock{position:fixed;left:0;right:0;bottom:0;z-index:40;display:none;
+  background:var(--surface);border-top:1px solid var(--line);
+  box-shadow:0 -6px 24px rgba(60,40,15,.14);padding:12px 18px}
+#dock.on{display:block}
+#dock .inner{max-width:1080px;margin:0 auto;display:flex;align-items:center;gap:12px;
+  flex-wrap:wrap;font-size:13px}
+#dock b{color:var(--c1);font-weight:700}
+#dock .grow{flex:1}
+#reportpane{background:var(--surface);border:2px solid var(--c1);border-radius:var(--radius);
+  padding:18px 20px;display:none;flex-direction:column;gap:11px}
+#reportpane.on{display:flex}
+#reportpane h3{font-family:"Shippori Mincho",serif;font-size:17px;font-weight:700}
+#reportpane p{font-size:12.5px;color:var(--ink2);line-height:1.8}
+#reportpane textarea{min-height:200px;border-color:var(--line);font-size:13px;line-height:1.8}
+.whobar{display:flex;align-items:center;gap:11px;flex-wrap:wrap;background:var(--surface2);
+  border-radius:999px;padding:11px 20px;font-size:13px;color:var(--ink2)}
+.whobar b{color:var(--ink);font-weight:700}
+.whobar input{background:var(--surface);border:1px solid var(--line);border-radius:999px;
+  padding:7px 16px;font-size:13px;color:var(--ink);min-width:170px}
+.breakdown{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:11px}
+.bd{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+  padding:16px 18px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:9px}
+.bd h3{font-family:"Shippori Mincho",serif;font-size:16px;font-weight:700;
+  display:flex;align-items:center;gap:8px}
+.bd h3::before{content:"";width:10px;height:10px;border-radius:50%;background:var(--c);flex:none}
+.bd dl{display:grid;grid-template-columns:1fr auto;gap:5px 12px;font-size:12.5px}
+.bd dt{color:var(--ink2)}
+.bd dd{font-family:"Roboto Mono",monospace;font-variant-numeric:tabular-nums;font-weight:500}
+@media(max-width:660px){#dock .inner{font-size:12.5px}}
 dialog{border:none;padding:0;background:transparent;max-width:min(92vw,760px)}
 dialog::backdrop{background:rgba(30,20,8,.78)}
 dialog img{width:100%;height:auto;border-radius:18px;display:block}
@@ -588,7 +630,7 @@ dialog img{width:100%;height:auto;border-radius:18px;display:block}
           '先に「画像を保存」して、投稿画面で自分で添付してください。</p>'
         : '');
 
-    var metrics = st === 'posted' ? metricsBlock(it, r) : '';
+    var metrics = st === 'posted' ? metricsBlock(it, r) : postBox(it);
 
     var img = '';
     if (isLaunch) {
@@ -721,7 +763,7 @@ dialog img{width:100%;height:auto;border-radius:18px;display:block}
         '<span class="idx">' + esc(it.idx) + '</span>' +
         '<span class="name">' + esc(it.name) + '</span>' + chips + '</div>' +
       bar + filmstrip(it) + '<div class="variants">' + vs + '</div>' + flags + acts +
-      (st === 'posted' ? metricsBlock(it, r) : '') +
+      (st === 'posted' ? metricsBlock(it, r) : postBox(it)) +
       '</article>';
   }
 
@@ -775,6 +817,145 @@ dialog img{width:100%;height:auto;border-radius:18px;display:block}
       '<div class="urlrow"><span class="spacer"></span>' +
       '<span class="er">エンゲージメント率 ' + er + '</span></div>' +
       '</div>';
+  }
+
+
+  /* ---------- 投稿の記録 ---------- */
+  /* URLを貼って保存すると、その場で「投稿ずみ」になる。
+     日付・担当者・時刻も一緒に残すので、あとから誰が出したか分かる。 */
+  function urlOk(v, med) {
+    if (!v) { return 'URLを貼ってください'; }
+    if (!/^https:\/\//.test(v)) { return 'https:// から始まるURLを貼ってください'; }
+    if (med === 'x' && !/^https:\/\/(x|twitter)\.com\//.test(v)) {
+      return 'X の投稿URLではないようです';
+    }
+    if (med === 'ig' && !/^https:\/\/(www\.)?instagram\.com\//.test(v)) {
+      return 'Instagram の投稿URLではないようです';
+    }
+    return '';
+  }
+
+  function postBox(it) {
+    var med = it.group === 'ig' ? 'ig' : 'x';
+    var name = med === 'ig' ? 'Instagram' : 'X';
+    return '<div class="postbox">' +
+      '<div class="pbhead">投稿したら、URLを貼って保存してください</div>' +
+      '<div class="pbrow">' +
+        '<input type="url" data-post="' + it.id + ':' + med + '" ' +
+        'placeholder="' + name + 'の投稿URLを貼る">' +
+        '<input type="text" class="who" data-who="1" placeholder="担当者名" value="' +
+        esc(state.who || '') + '">' +
+        '<button class="btn primary" data-act="savepost" data-id="' + it.id +
+        '" data-val="' + med + '">保存</button>' +
+      '</div>' +
+      '<div class="msg" data-msg="' + it.id + '"></div>' +
+      '</div>';
+  }
+
+  function savePost(id, med) {
+    var box = root.querySelector('[data-post="' + id + ':' + med + '"]');
+    var msg = root.querySelector('[data-msg="' + id + '"]');
+    if (!box) { return; }
+    var v = (box.value || '').trim();
+    var err = urlOk(v, med);
+    if (err) { if (msg) { msg.className = 'msg'; msg.textContent = err; } return; }
+    var r = rec(id);
+    r.status = 'posted';
+    r[med === 'ig' ? 'urlIg' : 'url'] = v;
+    r.who = state.who || '';
+    r.at = stamp();
+    r.sent = false;                       /* まだ矢部さんに届いていない */
+    if (!dateOf(id)) { state.dates[id] = todayISO(); }
+    persist(); render(); dock();
+  }
+
+  function stamp() {
+    var d = new Date(), p = function (n) { return (n < 10 ? '0' : '') + n; };
+    return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) +
+      ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
+  }
+
+
+
+  /* 画面下のバーと、報告の文面を出す箱。1度だけ作る。 */
+  function ensureDock() {
+    if (document.getElementById('dock')) { return; }
+    var bar = document.createElement('div');
+    bar.id = 'dock';
+    bar.innerHTML = '<div class="inner"><span id="dock-msg"></span><span class="grow"></span>' +
+      '<button class="btn primary" id="dock-report">まとめて報告する</button></div>';
+    document.body.appendChild(bar);
+    var pane = document.createElement('div');
+    pane.id = 'reportpane';
+    pane.innerHTML = '<h3>この文面を矢部さんに送ってください</h3>' +
+      '<p>この画面の記録は、いまお使いのブラウザにしか残りません。' +
+      '下の文面をコピーして、LINEやメールで送っていただくと、正式な記録に反映されます。</p>' +
+      '<textarea readonly></textarea>' +
+      '<div class="actions"><button class="btn primary" id="dock-done">送りました</button>' +
+      '<span class="spacer"></span></div>';
+    document.body.appendChild(pane);
+    bindDock();
+  }
+
+  /* ---------- まとめて報告 ---------- */
+  /* GitHub Pages 版は、保存してもこの人のブラウザにしか残らない。
+     そのままでは矢部さんに届かないので、未送信の記録を文面にして渡す。
+     Artifact 版は保存がそのまま共有されるので、このバーは出さない。 */
+  function unsent() {
+    if (ns) { return []; }                  /* Artifact 版は共有済み */
+    return ITEMS.filter(function (it) {
+      var r = state.items[it.id];
+      return r && r.status === 'posted' && r.sent === false;   /* 旧データは undefined ＝ 送信済み扱い */
+    });
+  }
+
+  function reportText() {
+    var lines = ['みんなのびわから基金 投稿デスク｜投稿しました'];
+    unsent().forEach(function (it) {
+      var r = state.items[it.id];
+      lines.push('');
+      lines.push((dateOf(it.id) || '日付未設定') + '　' + it.name);
+      lines.push(r.urlIg || r.url || '');
+      var m = r.m || {}, nums = [];
+      METRICS.forEach(function (f) {
+        if (m[f.k] !== '' && m[f.k] !== undefined && m[f.k] !== null) {
+          nums.push(f.label + ' ' + m[f.k]);
+        }
+      });
+      if (nums.length) { lines.push(nums.join('　')); }
+      lines.push('記録 ' + (r.who || '（担当者名なし）') + '　' + (r.at || ''));
+    });
+    return lines.join('\n');
+  }
+
+  function dock() {
+    var bar = document.getElementById('dock');
+    if (!bar) { return; }
+    var n = unsent().length;
+    bar.classList.toggle('on', n > 0);
+    var msg = document.getElementById('dock-msg');
+    if (msg) { msg.innerHTML = 'まだ送っていない記録 <b>' + n + '件</b>'; }
+  }
+
+  function bindDock() {
+    var rep = document.getElementById('dock-report');
+    var done = document.getElementById('dock-done');
+    if (!rep || rep.dataset.bound) { return; }
+    rep.dataset.bound = '1';
+    rep.addEventListener('click', function () {
+      var pane = document.getElementById('reportpane');
+      var ta = pane.querySelector('textarea');
+      ta.value = reportText();
+      pane.classList.add('on');
+      pane.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      ta.select();
+      try { document.execCommand('copy'); } catch (e) {}
+    });
+    done.addEventListener('click', function () {
+      unsent().forEach(function (it) { state.items[it.id].sent = true; });
+      document.getElementById('reportpane').classList.remove('on');
+      flush(); dock();
+    });
   }
 
   /* ---------- summary ---------- */
@@ -966,13 +1147,56 @@ dialog img{width:100%;height:auto;border-radius:18px;display:block}
         d, dateBar('days'), 2);
   }
 
+
+  /* 媒体ごとの内訳。合計だけだとXとInstagramのどちらが効いているか分からない。 */
+  function breakdown() {
+    function agg(f) {
+      var t = { n: 0, imp: 0, like: 0, rt: 0, rep: 0, prof: 0, link: 0 };
+      ITEMS.forEach(function (it) {
+        if (!f(it)) { return; }
+        var r = state.items[it.id];
+        if (!r || r.status !== 'posted') { return; }
+        t.n++;
+        METRICS.forEach(function (x) { t[x.k] += num((r.m || {})[x.k]); });
+      });
+      return t;
+    }
+    function panel(title, t, tone) {
+      var eng = t.like + t.rt + t.rep;
+      var er = t.imp > 0 ? (eng / t.imp * 100).toFixed(1) + ' %' : '—';
+      var avg = t.n > 0 && t.imp > 0 ? fmt(Math.round(t.imp / t.n)) : '—';
+      return '<div class="bd tone' + tone + '"><h3>' + esc(title) + '</h3><dl>' +
+        '<dt>投稿した本数</dt><dd>' + t.n + '</dd>' +
+        '<dt>インプレッション合計</dt><dd>' + (t.imp ? fmt(t.imp) : '—') + '</dd>' +
+        '<dt>1本あたり</dt><dd>' + avg + '</dd>' +
+        '<dt>いいね</dt><dd>' + (t.like ? fmt(t.like) : '—') + '</dd>' +
+        '<dt>エンゲージメント率</dt><dd>' + er + '</dd>' +
+        '<dt>プロフィール表示</dt><dd>' + (t.prof ? fmt(t.prof) : '—') + '</dd>' +
+        '<dt>リンククリック</dt><dd>' + (t.link ? fmt(t.link) : '—') + '</dd>' +
+        '</dl></div>';
+    }
+    return '<div class="breakdown">' +
+      panel('X', agg(function (it) { return it.group !== 'ig'; }), 3) +
+      panel('Instagram', agg(function (it) { return it.group === 'ig'; }), 5) +
+      '</div>';
+  }
+
+  /* 担当者名。ここで入れておくと、各カードの保存欄にも入る。 */
+  function whoBar() {
+    return '<div class="whobar"><b>記録する人</b>' +
+      '<input type="text" data-who="1" placeholder="担当者名" value="' +
+      esc(state.who || '') + '">' +
+      '<span>保存した記録に、この名前と時刻が残ります。</span></div>';
+  }
+
   function doneView() {
     var list = ITEMS.filter(function (it) { return get(it.id).status === 'posted'; });
+    var head = whoBar() + breakdown();
     if (!list.length) {
-      return '<div class="empty">まだ投稿済みの記録がありません。<br>' +
-        '投稿したら、そのカードの「投稿したので記録する」を押してください。ここに移動します。</div>';
+      return head + '<div class="empty">まだ投稿済みの記録がありません。<br>' +
+        '投稿したら、そのカードでURLを貼って「保存」を押してください。ここに移動します。</div>';
     }
-    return '<section class="tone2"><div class="sechead"><h2>投稿済み</h2>' +
+    return head + '<section class="tone2"><div class="sechead"><h2>投稿済み</h2>' +
       '<p class="lede">Xは投稿のアナリティクス画面、Instagramはインサイトの数字を手で入れてください。' +
       '外部サービスと自動で連携はしていません。</p></div>' +
       '<div class="stack">' + list.map(function (it) {
@@ -1158,6 +1382,7 @@ dialog img{width:100%;height:auto;border-radius:18px;display:block}
       root.addEventListener('input', onInput);
       root.addEventListener('change', onInput);
     }
+    ensureDock();
     var focus = document.activeElement;
     var key = focus && (focus.getAttribute('data-metric') || focus.getAttribute('data-url'));
     root.innerHTML = view();
@@ -1168,6 +1393,7 @@ dialog img{width:100%;height:auto;border-radius:18px;display:block}
       var back = root.querySelector('[data-metric="' + key + '"],[data-url="' + key + '"]');
       if (back) { back.focus(); }
     }
+    dock();
   }
 
   function onInput(ev) {
@@ -1195,6 +1421,11 @@ dialog img{width:100%;height:auto;border-radius:18px;display:block}
       if (!state.dates) { state.dates = {}; }
       if (t.value) { state.dates[dk] = t.value; } else { delete state.dates[dk]; }
       render(); flush(); return;
+    }
+    if (t.getAttribute && t.getAttribute('data-who')) {
+      state.who = t.value.trim();
+      persist();
+      return;
     }
     var uk = t.getAttribute && t.getAttribute('data-url');
     if (uk) {
@@ -1224,6 +1455,7 @@ dialog img{width:100%;height:auto;border-radius:18px;display:block}
     var id = b.getAttribute('data-id');
     var val = b.getAttribute('data-val');
 
+    if (act === 'savepost') { savePost(id, val); return; }
     if (act === 'copy') {
       var old = b.textContent;
       navigator.clipboard.writeText(fullText(id, val)).then(function () {
