@@ -47,6 +47,15 @@ def norm(t):
     return re.sub(r"\s+", "", t or "")
 
 
+def jst_date(iso):
+    """X の created_at は UTC。日本時間の日付に直す（朝9時前の投稿が前日にならないように）"""
+    if not iso:
+        return ""
+    import datetime
+    t = datetime.datetime.strptime(iso[:19], "%Y-%m-%dT%H:%M:%S")
+    return (t + datetime.timedelta(hours=9)).date().isoformat()
+
+
 # ---------- 取ってくる ----------
 
 def from_x(sid):
@@ -63,7 +72,7 @@ def from_x(sid):
         media="x", key=sid,
         url="https://x.com/biwakara_fund/status/%s" % sid,
         text=body,
-        date=(d.get("created_at") or "")[:10],
+        date=jst_date(d.get("created_at")),
         like=d.get("favorite_count"),
     )
 
