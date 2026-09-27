@@ -56,6 +56,23 @@ class CheckError(Exception):
     pass
 
 
+# 出島福祉村・菅井様の指摘（2026-09-27）。事実として確認できないものは書かない。
+FACT_BAN = [
+    ("600", "農地の規模を示す数字。根拠が確認できないため使わない"),
+]
+# 黄綬褒章は建築分野での受章。福祉での受章と読める書き方をしない。
+# 「黄綬」と書くなら、同じ文の中に「建築」がなければ止める。
+def fact_gate(label, text):
+    for word, why in FACT_BAN:
+        if word in (text or ""):
+            raise CheckError("%s: 「%s」 … %s" % (label, word, why))
+    if "黄綬" in (text or "") and "建築" not in text:
+        raise CheckError("%s: 黄綬褒章に触れるなら「建築」での受章だと同じ文に書く" % label)
+    # 正式名称は「みんなのびわから基金」。単独の「びわから基金」は止める
+    if re.search(r"(?<!みんなの)びわから基金", text or ""):
+        raise CheckError("%s: 「びわから基金」単独は不可。正式名称は「みんなのびわから基金」" % label)
+
+
 def _internal(text, allow=()):
     hits = []
     for w in INTERNAL:
@@ -75,6 +92,8 @@ def _internal(text, allow=()):
 def image_text(name, parts, allow=()):
     """画像に焼き込む文字列を検査する。
        parts: 画像に載る文字列のリスト。allow: この画像では許す語のタプル。"""
+    for _t in parts:
+        fact_gate(name, _t)
     joined = "　".join(x for x in parts if x)
     bad = _internal(joined, allow)
     if EMOJI.search(joined):
@@ -89,6 +108,7 @@ def image_text(name, parts, allow=()):
 
 def post_text(name, media, text, tags=None):
     """投稿本文を検査する。media は 'x' か 'ig'。"""
+    fact_gate(name, text)
     bad = []
     if EMOJI.search(text):
         bad.append("絵文字")

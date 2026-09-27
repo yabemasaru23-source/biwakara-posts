@@ -1,6 +1,6 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>びわから基金 投稿デスク</title>
+<title>みんなのびわから基金 投稿デスク</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@600;700&family=Zen+Kaku+Gothic+New:wght@400;500;700&family=Roboto+Mono:wght@400;500&display=swap">
@@ -477,7 +477,7 @@ dialog img{width:100%;height:auto;border-radius:18px;display:block}
   function fullText(id, med) {
     var t = textOf(id, med), it = BY_ID[id];
     if (med === 'ig' && it.tags && it.tags.length) {
-      t += '\n\n' + it.tags.map(function (x) { return '#' + x; }).join(' ');
+      /* ハッシュタグは付けない（Meta は配信の材料にしていない。菅井様 2026-09-27） */
     }
     return t;
   }
@@ -564,7 +564,7 @@ dialog img{width:100%;height:auto;border-radius:18px;display:block}
     var bodyHtml = isEditing
       ? '<textarea data-edit="' + it.id + ':' + med + '">' + esc(textOf(it.id, med)) + '</textarea>' +
         (med === 'ig' && it.tags.length
-          ? '<p class="tagline">' + esc(it.tags.map(function (x) { return '#' + x; }).join(' ')) +
+          ? '' +
             '（ハッシュタグは固定です）</p>' : '') +
         '<div class="actions"><button class="btn primary" data-act="save" data-id="' + it.id +
         '" data-val="' + med + '">保存する</button>' +
@@ -706,7 +706,7 @@ dialog img{width:100%;height:auto;border-radius:18px;display:block}
       var body;
       if (on && isEditing) {
         body = '<textarea data-edit="' + it.id + ':ig">' + esc(textOf(it.id, 'ig')) + '</textarea>' +
-          '<p class="tagline">' + esc(it.tags.map(function (x) { return '#' + x; }).join(' ')) +
+          '' +
           '（ハッシュタグは固定です）</p>' +
           '<div class="actions"><button class="btn primary" data-act="save" data-id="' + it.id +
           '" data-val="ig">保存する</button>' +
@@ -716,7 +716,7 @@ dialog img{width:100%;height:auto;border-radius:18px;display:block}
               it.id + '" data-val="ig">元の文面に戻す</button>' : '') + '</div>';
       } else {
         var t = on ? fullText(it.id, 'ig')
-                   : v.text + '\n\n' + it.tags.map(function (x) { return '#' + x; }).join(' ');
+                   : v.text;
         body = '<div class="body">' + esc(t) + '</div>' + meter(t, 'ig');
       }
       return '<div class="variant' + (on ? ' on' : (picked ? ' off' : '')) + '">' +
@@ -910,7 +910,7 @@ dialog img{width:100%;height:auto;border-radius:18px;display:block}
   }
 
   function reportText() {
-    var lines = ['みんなのびわから基金 投稿デスク｜投稿しました'];
+    var lines = ['みんなのみんなのびわから基金 投稿デスク｜投稿しました'];
     unsent().forEach(function (it) {
       var r = state.items[it.id];
       lines.push('');
@@ -1205,7 +1205,7 @@ dialog img{width:100%;height:auto;border-radius:18px;display:block}
   }
 
   function handoffText() {
-    var L = ['びわから基金 投稿デスク ／ 確認結果',
+    var L = ['みんなのびわから基金 投稿デスク ／ 確認結果',
              new Date().toLocaleDateString('ja-JP') + ' 時点', ''];
     if (state.chosen) {
       L.push('【一発目】 案' + state.chosen + ' がよいと思います');
@@ -1309,7 +1309,7 @@ dialog img{width:100%;height:auto;border-radius:18px;display:block}
         : tab === 'done' ? doneView()
         : tab === 'ig' ? igView() : planView()) +
       '<footer>' +
-        '<p><b>素材</b>　びわから基金部門 CLAUDE.md 知識アーカイブ／SNS開設完了報告_投稿サンプル選定_2026-08-28.pdf</p>' +
+        '<p><b>素材</b>　部門の知識アーカイブ／SNS開設完了報告_投稿サンプル選定_2026-08-28.pdf</p>' +
         '<p><b>数字の入れ方</b>　Xは投稿の「アナリティクスを表示」、Instagramは投稿のインサイトから転記します。自動取得にはAPIの契約が必要なため、現状は手入力です。</p>' +
         '<p><b>リンククリックを数えたい場合</b>　プロフィール欄のURLに <code>?utm_source=x&amp;utm_medium=sns</code> のような印をつけると、公式サイト側の解析でどの媒体から来たか分かれます。</p>' +
         '<p><b>運用ルール</b>　この画面は自動投稿をしません。黄色の「公開前に確認すること」が残っている投稿は、確認が取れるまで出さないでください。</p>' +
@@ -1322,7 +1322,7 @@ dialog img{width:100%;height:auto;border-radius:18px;display:block}
   function docSource(st) {
     return '<!doctype html><html lang="ja"><head><meta charset="utf-8">' +
       '<meta name="viewport" content="width=device-width, initial-scale=1">' +
-      '<title>びわから基金 投稿デスク</title>' + FONTS +
+      '<title>みんなのびわから基金 投稿デスク</title>' + FONTS +
       '<style id="app-style">' + document.getElementById('app-style').textContent + '</style>' +
       '</head><body>' +
       '<script id="app-data" type="application/json">' +
