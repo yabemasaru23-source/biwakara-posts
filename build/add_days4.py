@@ -13,7 +13,7 @@ import check
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 V = lambda i, l, t: dict(id=i, label=l, text=t)
-TAGS = ["みんなのびわから基金", "親亡き後", "障害福祉", "出島福祉村", "長崎"]
+TAGS = ["みんなのびわから基金", "親亡き後", "障がい福祉", "出島福祉村", "長崎"]
 
 DAYS = [
   dict(id="d45", day=45, theme="重い言葉", cap="重い言葉だと\n思います", tone="deep", photo="biwa01.jpeg",

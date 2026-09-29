@@ -44,7 +44,8 @@ def fetch(url, ua=UA):
 
 
 def norm(t):
-    return re.sub(r"\s+", "", t or "")
+    # 公開済みの投稿は「障害」、原稿は「障がい」（2026-09-29 表記変更）。照合では同じ語として扱う
+    return re.sub(r"\s+", "", (t or "").replace("障害", "障がい"))
 
 
 def jst_date(iso):
