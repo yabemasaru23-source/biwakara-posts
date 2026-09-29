@@ -349,6 +349,36 @@ footer b{color:var(--ink);font-weight:700}
 .bd dt{color:var(--ink2)}
 .bd dd{font-family:"Roboto Mono",monospace;font-variant-numeric:tabular-nums;font-weight:500}
 @media(max-width:660px){#dock .inner{font-size:12.5px}}
+
+/* ---- 法人のご確認 ---- */
+.rvhead{background:color-mix(in srgb,var(--c1) 10%,var(--surface));border:2px solid var(--c1);
+  border-radius:var(--radius);padding:18px 22px;display:flex;flex-direction:column;gap:8px}
+.rvhead h2::before{display:none}
+.rvdue{align-self:flex-start;background:var(--c1);color:var(--on-accent);border-radius:999px;
+  padding:5px 16px;font-weight:700;font-size:14px}
+.rvcard{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+  padding:16px;display:grid;grid-template-columns:180px 1fr;gap:18px;box-shadow:var(--shadow)}
+.rvcard .thumb{max-width:180px}
+.rvmeta{font-family:"Shippori Mincho",serif;font-weight:700;font-size:17px}
+.rvmeta small{font-weight:500;color:var(--ink2);font-size:13px;margin-left:8px}
+.rvq{border-top:1px dashed var(--line);padding-top:12px;margin-top:4px;display:flex;flex-direction:column;gap:8px}
+.rvq .qn{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:50%;
+  background:var(--ink);color:var(--surface);font-size:13px;font-weight:700;margin-right:8px}
+.rvch{display:flex;gap:8px;flex-wrap:wrap}
+.rvch label{border:1px solid var(--line);border-radius:999px;padding:6px 14px;font-size:14px;
+  cursor:pointer;background:var(--surface)}
+.rvch input{margin-right:6px}
+.rvq textarea{min-height:52px;border:1px solid var(--line);font-size:14px;padding:8px 12px}
+.rvnote{display:block;margin-top:8px;font-size:12px;color:var(--ink2)}
+.rvok{font-size:13px;color:var(--ok);font-weight:700}
+.rvskip{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}
+.rvmini{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:10px;
+  display:grid;grid-template-columns:72px 1fr;gap:10px;align-items:start;font-size:13px}
+.rvmini img{width:72px;height:72px;object-fit:cover;border-radius:10px;display:block}
+.rvmini summary{cursor:pointer;color:var(--ink2);font-size:12px}
+.rvmini pre{white-space:pre-wrap;font-family:inherit;font-size:13px;margin:6px 0 0}
+#rvout{display:none;min-height:160px;font-size:13px;border-color:var(--line)}
+@media(max-width:660px){.rvcard{grid-template-columns:1fr}.rvcard .thumb{max-width:220px}}
 dialog{border:none;padding:0;background:transparent;max-width:min(92vw,760px)}
 dialog::backdrop{background:rgba(30,20,8,.78)}
 dialog img{width:100%;height:auto;border-radius:18px;display:block}
@@ -405,6 +435,7 @@ dialog img{width:100%;height:auto;border-radius:18px;display:block}
   var media = {};
   var tab = 'today';
   try { tab = sessionStorage.getItem('biwakara-tab') || 'today'; } catch (e) {}
+  if (location.hash === '#check') { tab = 'review'; }
 
   /* ---------- items ---------- */
   var ITEMS = [];
@@ -1189,6 +1220,102 @@ dialog img{width:100%;height:auto;border-radius:18px;display:block}
       '<span>保存した記録に、この名前と時刻が残ります。</span></div>';
   }
 
+
+  /* ---------- 法人のご確認 ---------- */
+  /* 菅井様・池田統括が、画像つきで投稿を見ながら確認できるタブ。
+     posts.json の ask（確認事項）だけに「このままでよい／載せない／直してほしい」を付ける。
+     回答はこのブラウザにだけ残るので、「回答をコピーする」でメールに貼って返してもらう。 */
+  var RVKEY = 'biwakara-review-' + ((DATA.review || {}).made || '');
+  var RV = {};
+  try { RV = JSON.parse(localStorage.getItem(RVKEY) || '{}') || {}; } catch (e) { RV = {}; }
+  function rvSave() { try { localStorage.setItem(RVKEY, JSON.stringify(RV)); } catch (e) {} }
+  function jpDate(iso) {
+    var d = new Date(iso + 'T00:00:00');
+    return (d.getMonth() + 1) + '月' + d.getDate() + '日（' + '日月火水木金土'[d.getDay()] + '）';
+  }
+  function reviewRows() {
+    var R = DATA.review; if (!R) { return []; }
+    var rows = [];
+    DATA.days.forEach(function (d) {
+      [['x', d.id, 'X', d.ask || []], ['ig', 'i' + d.id.slice(1), 'Instagram', d.ask_ig || []]].forEach(function (p) {
+        var date = dateOf(p[1]);
+        if (!date || date < R.start || date > R.end) { return; }
+        if (get(p[1]).status === 'posted') { return; }
+        rows.push({ date: date, med: p[0], id: p[1], label: p[2], theme: d.theme,
+                    asks: p[3], img: DATA.images[d.id] || null });
+      });
+    });
+    rows.sort(function (a, b) {
+      if (a.date !== b.date) { return a.date < b.date ? -1 : 1; }
+      return a.med === 'x' ? -1 : 1;
+    });
+    return rows;
+  }
+  function rvRange() {
+    var R = DATA.review || {};
+    return R.start ? jpDate(R.start) + '〜' + jpDate(R.end) : '';
+  }
+  function rvBody(r) {
+    var t = textOf(r.id, r.med);
+    if (t) { return esc(t); }
+    var l = variantsOf(BY_ID[r.id], r.med) || [];
+    return l.length ? esc(l[0].text) + '<span class="rvnote">※3つの案のうち、まだどれを使うか決めていないため、1つ目の案を表示しています</span>' : '';
+  }
+  function reviewView() {
+    var R = DATA.review;
+    if (!R) { return '<div class="empty">いま、ご確認をお願いしている投稿はありません。</div>'; }
+    var rows = reviewRows(), need = [], skip = [], n = 0;
+    rows.forEach(function (r) { (r.asks.length ? need : skip).push(r); });
+    var head = '<section class="rvhead"><h2>法人のご確認</h2>' +
+      '<div>対象：' + esc(rvRange()) + ' に投稿する予定の分</div>' +
+      '<span class="rvdue">ご回答の締め：' + esc(jpDate(R.due)) + '</span>' +
+      '<p class="lede">公式サイトやご回答済みの内容にない事実だけを抜き出しています。' +
+      '投稿の画像と文を見ながら、各項目で「このままでよい／載せない／直してほしい」を選び、' +
+      'いちばん下の「回答をコピーする」を押して、出てきた文をメールに貼ってご返信ください。' +
+      '「載せない」「直してほしい」の回は直してから出し、ご回答のない回は出さずに後ろへ回します。</p></section>';
+    var cards = need.map(function (r) {
+      var qs = r.asks.map(function (a) {
+        n++;
+        var cur = RV[n] || {};
+        var opt = function (v, label) {
+          return '<label><input type="radio" name="rv' + n + '" data-rv="' + n + '" value="' + v + '"' +
+            (cur.v === v ? ' checked' : '') + '>' + label + '</label>';
+        };
+        return '<div class="rvq"><div><span class="qn">' + n + '</span>' + esc(a) + '</div>' +
+          '<div class="rvch">' + opt('○', 'このままでよい') + opt('×', '載せない') + opt('修正', '直してほしい') + '</div>' +
+          '<textarea data-rvc="' + n + '" placeholder="直してほしい内容・ひとこと（任意）">' + esc(cur.c || '') + '</textarea></div>';
+      }).join('');
+      return '<div class="rvcard">' +
+        (r.img ? '<button class="thumb" data-act="zoom" data-id="' + r.id + '"><img src="' + r.img + '" alt=""></button>' : '<div></div>') +
+        '<div class="col"><div class="rvmeta">' + esc(jpDate(r.date)) + '<small>' + r.label + '</small></div>' +
+        '<div class="name">' + esc(r.theme) + '</div>' +
+        '<div class="body">' + rvBody(r) + '</div>' + qs + '</div></div>';
+    }).join('');
+    var minis = skip.map(function (r) {
+      return '<div class="rvmini">' + (r.img ? '<img src="' + r.img + '" alt="">' : '<div></div>') +
+        '<div><b>' + esc(jpDate(r.date)) + '</b> ' + r.label + '<br>' + esc(r.theme) +
+        '<details><summary>投稿する文を見る</summary><pre>' + rvBody(r) + '</pre></details></div></div>';
+    }).join('');
+    return head +
+      '<section class="tone1"><div class="sechead"><h2>ご確認をお願いしたい投稿（' + need.length + '回・' + n + '項目）</h2></div>' +
+      '<div class="stack">' + (cards || '<div class="empty">この期間は、確認が必要な項目はありません。</div>') + '</div></section>' +
+      '<section class="tone2"><div class="sechead"><h2>確認済みの事実だけで書いた投稿（' + skip.length + '回）</h2>' +
+      '<p class="lede">ご回答済みの内容だけで書いているため、ご確認は不要です。画像と文はここでご覧いただけます。</p></div>' +
+      '<div class="rvskip">' + minis + '</div></section>' +
+      '<section><div class="actions"><button class="btn primary" data-act="rvcopy">回答をコピーする</button>' +
+      '<span class="rvok" id="rvok"></span></div><textarea id="rvout" readonly></textarea></section>';
+  }
+  function rvText() {
+    var L = ['みんなのびわから基金 投稿のご確認（' + rvRange() + '）への回答'];
+    var total = 0;
+    reviewRows().forEach(function (r) { total += r.asks.length; });
+    for (var i = 1; i <= total; i++) {
+      var a = RV[i] || {};
+      L.push(i + '  ' + (a.v || '未回答') + (a.c ? '　' + a.c : ''));
+    }
+    return L.join('\n');
+  }
+
   function doneView() {
     var list = ITEMS.filter(function (it) { return get(it.id).status === 'posted'; });
     var head = whoBar() + breakdown();
@@ -1299,13 +1426,15 @@ dialog img{width:100%;height:auto;border-radius:18px;display:block}
       progressStrip() +
       tiles() +
       '<div class="tabs">' +
+        (DATA.review ? '<button data-act="tab" data-val="review"' + (tab === 'review' ? ' class="on"' : '') + '>法人のご確認（' + esc(rvRange()) + '）</button>' : '') +
         '<button data-act="tab" data-val="today"' + (tab === 'today' ? ' class="on"' : '') + '>きょう</button>' +
         '<button data-act="tab" data-val="plan"' + (tab === 'plan' ? ' class="on"' : '') + '>X の投稿</button>' +
         '<button data-act="tab" data-val="ig"' + (tab === 'ig' ? ' class="on"' : '') + '>Instagram（週3回・3案から選ぶ）</button>' +
         '<button data-act="tab" data-val="done"' + (tab === 'done' ? ' class="on"' : '') + '>投稿済みと数字</button>' +
       '</div>' +
       handoffBar() +
-      (tab === 'today' ? todayView()
+      (tab === 'review' ? reviewView()
+        : tab === 'today' ? todayView()
         : tab === 'done' ? doneView()
         : tab === 'ig' ? igView() : planView()) +
       '<footer>' +
@@ -1394,10 +1523,22 @@ dialog img{width:100%;height:auto;border-radius:18px;display:block}
       if (back) { back.focus(); }
     }
     dock();
+    /* #check で開いたときは、最初の1回だけ「法人のご確認」の見出しまで移る */
+    if (tab === 'review' && location.hash === '#check' && !window.__rvJumped) {
+      window.__rvJumped = true;
+      setTimeout(function () { var h = document.querySelector('.rvhead'); if (h) { h.scrollIntoView({ block: 'start' }); } }, 60);
+    }
   }
 
   function onInput(ev) {
     var t = ev.target;
+    var rvn = t.getAttribute && (t.getAttribute('data-rv') || t.getAttribute('data-rvc'));
+    if (rvn) {
+      RV[rvn] = RV[rvn] || {};
+      if (t.getAttribute('data-rv')) { RV[rvn].v = t.value; } else { RV[rvn].c = t.value; }
+      rvSave();
+      return;
+    }
     var mk = t.getAttribute && t.getAttribute('data-metric');
     if (mk) {
       var p = mk.split(':');
@@ -1456,6 +1597,15 @@ dialog img{width:100%;height:auto;border-radius:18px;display:block}
     var val = b.getAttribute('data-val');
 
     if (act === 'savepost') { savePost(id, val); return; }
+    if (act === 'rvcopy') {
+      var rt = rvText(), out = document.getElementById('rvout'), ok = document.getElementById('rvok');
+      out.value = rt; out.style.display = 'block'; out.select();
+      var done = function () { ok.textContent = 'コピーしました。メールに貼ってご返信ください'; };
+      (navigator.clipboard ? navigator.clipboard.writeText(rt) : Promise.reject()).then(done, function () {
+        try { document.execCommand('copy'); done(); } catch (e) { ok.textContent = '上の文を選んでコピーしてください'; }
+      });
+      return;
+    }
     if (act === 'copy') {
       var old = b.textContent;
       navigator.clipboard.writeText(fullText(id, val)).then(function () {

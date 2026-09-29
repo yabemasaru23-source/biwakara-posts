@@ -51,6 +51,9 @@ def main():
         "days": posts["days"],
         "images": images,
         "baseTags": BASE_TAGS,
+        # 法人（菅井様・池田統括）の確認期間。投稿デスクの「法人のご確認」タブに出す
+        "review": (json.load(open(os.path.join(HERE, "review.json"), encoding="utf-8"))
+                   if os.path.exists(os.path.join(HERE, "review.json")) else None),
     }
     blob = json.dumps(data, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/")
 
