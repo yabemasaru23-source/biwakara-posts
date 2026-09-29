@@ -100,8 +100,8 @@ button{background:var(--c);color:#fff;border:0;border-radius:999px;padding:12px 
 <div class="lead">対象：%(range)s に投稿する予定の分</div>
 <div class="due">ご回答の締め：%(due)s</div>
 <p class="lead">公式サイトやご回答済みの内容にない事実だけを抜き出しています。
-各項目で「○／×／修正」を選び、いちばん下の「回答をコピーする」を押して、出てきた文面をメールに貼ってご返信ください。
-×・修正の回は直してから出し、ご回答のない回は出さずに後ろへ回します。%(note)s</p>
+各項目で「このままでよい／載せない／直してほしい」のどれかを選び、いちばん下の「回答をコピーする」を押して、出てきた文面をメールに貼ってご返信ください。
+「載せない」「直してほしい」の回は直してから出し、ご回答のない回は出さずに後ろへ回します。%(note)s</p>
 %(blocks)s
 <section><h2>確認済みの事実だけで書いた回（ご確認は不要です）</h2><ul class="skip">%(skip)s</ul></section>
 <section><button id="copy">回答をコピーする</button><span class="done" id="ok"></span>
