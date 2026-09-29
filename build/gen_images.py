@@ -265,7 +265,7 @@ def main(only=None):
 
     if want("hero"):
         render("hero", HERO, PALETTE[0], "PROJECT", "みんなのびわから基金プロジェクト", "",
-               sub="「親亡き後」の不安を、日本からなくす。長崎から、10,000人の応援団をつくります。")
+               sub="「親亡き後」の不安を日本からなくす　長崎から10,000人の応援団をつくります")
         n += 1
 
     for i, (k, theme, cap) in enumerate(LAUNCH):

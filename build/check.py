@@ -100,6 +100,9 @@ def image_text(name, parts, allow=()):
        parts: 画像に載る文字列のリスト。allow: この画像では許す語のタプル。"""
     for _t in parts:
         fact_gate(name, _t)
+        # 画像の文字に句読点は入れない（矢部さん指示 2026-09-29）。PUNCT_IN_IMAGE
+        if re.search(r"[、。，．]", _t or ""):
+            raise CheckError("%s: 画像の文字に句読点「、」「。」は入れない（%s）" % (name, (_t or "").replace("\n", " ")))
     joined = "　".join(x for x in parts if x)
     bad = _internal(joined, allow)
     if EMOJI.search(joined):
