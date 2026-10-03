@@ -62,6 +62,11 @@ h2::before{content:"";width:13px;height:13px;border-radius:50%;background:var(--
 
 .hero{display:flex;flex-direction:column;gap:18px}
 .hero img{width:100%;height:auto;display:block;border-radius:var(--radius);box-shadow:var(--shadow)}
+.logobar{display:flex;align-items:center}
+.logobar img{height:46px;width:auto;display:block}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .logobar img{
+  background:#FFFDF8;border-radius:12px;padding:8px 14px;box-sizing:content-box}}
+:root[data-theme="dark"] .logobar img{background:#FFFDF8;border-radius:12px;padding:8px 14px;box-sizing:content-box}
 .accounts{display:flex;flex-wrap:wrap;gap:9px}
 .acct{display:flex;align-items:center;gap:9px;text-decoration:none;background:var(--surface);
   border:1px solid var(--line);border-radius:999px;padding:8px 16px;box-shadow:var(--shadow);
@@ -1411,6 +1416,7 @@ dialog img{width:100%;height:auto;border-radius:18px;display:block}
   function view() {
     return '' +
       '<header class="hero">' +
+        (DATA.logo ? '<div class="logobar"><img src="' + DATA.logo + '" alt="びわから基金"></div>' : '') +
         (DATA.images.hero
           ? '<img src="' + DATA.images.hero + '" alt="みんなのびわから基金プロジェクト">'
           : '<h1>みんなのびわから基金プロジェクト</h1>') +

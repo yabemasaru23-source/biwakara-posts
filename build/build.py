@@ -45,7 +45,14 @@ def main():
         b = base64.b64encode(buf.getvalue()).decode("ascii")
         images[name] = "data:image/jpeg;base64," + b
 
+    # ヘッダーのロゴ（2026-10-03 本人「各サイトにロゴとか入れてください」）。透過PNGのまま埋め込む
+    logo = ""
+    lp = os.path.join(IMG, "logo.png")
+    if os.path.exists(lp):
+        logo = "data:image/png;base64," + base64.b64encode(open(lp, "rb").read()).decode("ascii")
+
     data = {
+        "logo": logo,
         "launch": posts["launch"],
         "series": posts["series"],
         "days": posts["days"],
