@@ -463,8 +463,8 @@ dialog img{width:100%;height:auto;border-radius:18px;display:block}
     ITEMS.push({ id: 'i' + d.id.slice(1), group: 'ig', name: d.theme,
       idx: '第' + d.day + '回', when: '', media: ['ig'], x: '',
       variants: d.igv, tags: d.tags, check: d.check,
-      img: DATA.images[d.id] || null, tone: (i % 5) + 1,
-      keys: [d.id, d.id + '_2', d.id + '_3', d.id + '_4'].filter(function (k) {
+      img: DATA.images[d.id + '_c'] || DATA.images[d.id] || null, tone: (i % 5) + 1,
+      keys: [DATA.images[d.id + '_c'] ? d.id + '_c' : d.id, d.id + '_2', d.id + '_3', d.id + '_4'].filter(function (k) {
         return DATA.images[k];
       }) });
   });

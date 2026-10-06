@@ -28,6 +28,8 @@ def main():
     slides = []
     for d in posts["days"]:
         names.append(d["id"])
+        if d.get("igphoto"):
+            names.append(d["id"] + "_c")      # Instagram 用の表紙（igphoto があるときだけ）
         for j in range(len(d.get("igslides", []))):
             slides.append("%s_%d" % (d["id"], j + 2))
     names += slides

@@ -286,6 +286,11 @@ def main(only=None):
         if want(d["id"]):
             render(d["id"], SQ, p, d["theme"], d["cap"], "")
             n += 1
+        # Instagram だけ表紙の写真を変える（X が投稿済みで、Instagram がまだの回。2026-10-06）
+        if d.get("igphoto") and want(d["id"] + "_c"):
+            PHOTO_NOW[d["id"] + "_c"] = check.photo(d["igphoto"])
+            render(d["id"] + "_c", SQ, p, d["theme"], d["cap"], "")
+            n += 1
         for j, text in enumerate(d.get("igslides", [])):
             nm = "%s_%d" % (d["id"], j + 2)
             if not want(nm):
