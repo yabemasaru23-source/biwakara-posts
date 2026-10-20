@@ -34,13 +34,17 @@ def main():
             slides.append("%s_%d" % (d["id"], j + 2))
     names += slides
     images = {}
+    # 投稿済みの回の画像は、記録として見るだけなので小さく埋め込む（2026-10-20 Artifact の上限 16MB を超えたため）
+    small = done_images(posts)
     for name in names:
         p = os.path.join(IMG, name + ".jpg")
         if not os.path.exists(p):
             continue
         # 画質を落として埋め込む（投稿用の原寸は images/ に残り、原寸リンクから開ける）
         im = Image.open(p).convert("RGB")
-        if name in slides:            # カルーセルの中身は下見用なので小さくてよい
+        if name in small:
+            im = im.resize((320, 320), Image.LANCZOS)
+        elif name in slides:          # カルーセルの中身は下見用なので小さくてよい
             im = im.resize((520, 520), Image.LANCZOS)
         buf = io.BytesIO()
         im.save(buf, "JPEG", quality=72, optimize=True)
@@ -83,6 +87,28 @@ def main():
     print("built", dest, round(len(out.encode("utf-8")) / 1024), "KB",
           "/ images:", len(images),
           "/ 引き継いだ承認・数字:", "あり" if kept else "なし")
+
+
+def done_images(posts):
+    """投稿が済んだ回の画像名。X と Instagram の両方が済んだ表紙と、Instagram が済んだ回の表紙・中身。"""
+    f = os.path.join(SITE, "index.html")
+    if not os.path.exists(f):
+        return set()
+    m = re.search(r'<script id="app-state" type="application/json">(.*?)</script>',
+                  open(f, encoding="utf-8").read(), re.S)
+    try:
+        items = json.loads(m.group(1)).get("items", {}) if m else {}
+    except ValueError:
+        return set()
+    posted = lambda k: (items.get(k) or {}).get("status") == "posted"
+    out = set()
+    for d in posts["days"]:
+        x, i = d["id"], "i" + d["id"][1:]
+        if posted(i):
+            out.update([x + "_c", x + "_2", x + "_3", x + "_4"])
+        if posted(x) and (posted(i) or d.get("igphoto")):
+            out.add(x)
+    return out
 
 
 def carry_state(dest):
