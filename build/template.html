@@ -1125,6 +1125,10 @@ dialog img{width:100%;height:auto;border-radius:18px;display:block}
           if (it.group === 'launch') { return; }
           var stt = get(it.id).status || 'none';
           if (stt === 'posted' || stt === 'hold') { return; }  /* 要修正は確認待ちなので飛ばす */
+          /* 予定日が今日より前のまま残っている回（削除・取り下げた回、出しそびれた回）は「次」に出さない。
+             2026-10-31、9/15 に削除した Day14 がここに出て、そのまま投稿された */
+          var dt0 = dateOf(it.id);
+          if (!dt0 || dt0 < t) { return; }
           hit = it;
         });
         if (hit) { nxt.push(hit); }
