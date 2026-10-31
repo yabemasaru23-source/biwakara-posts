@@ -2,6 +2,7 @@
 
     python shift_dates.py d59 --last d56          # 見るだけ
     python shift_dates.py d59 --last d56 --write  # index.html の app-state に書く
+    python shift_dates.py --ig-from i28 --set i27=2026-10-31   # Instagram を1枠ずつ後ろへ
 
 d59 以降の未投稿の回を1日ずつ後ろへ。--last の回は最後の回の翌日に回す。
 書いたあとは build.py → push → Artifact 再公開。
@@ -20,7 +21,9 @@ PAT = r'(<script id="app-state" type="application/json">)(.*?)(</script>)'
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("start")
+    ap.add_argument("start", nargs="?", default="d99999")
+    ap.add_argument("--ig-from", help="この回以降の未投稿の Instagram を1枠ずつ後ろへ")
+    ap.add_argument("--set", nargs="*", default=[], help="key=YYYY-MM-DD で日付を直接直す")
     ap.add_argument("--last", nargs="*", default=[])
     ap.add_argument("--days", type=int, default=1)
     ap.add_argument("--write", action="store_true")
@@ -46,6 +49,20 @@ def main():
             continue
         end = (datetime.date.fromisoformat(end) + datetime.timedelta(days=1)).isoformat()
         plan[k] = end
+
+    # Instagram（月・水・金）は、未投稿の回を1枠ずつ後ろの回の日付へ送る。最後の回は次の月・水・金へ
+    if a.ig_from:
+        ks = sorted((k for k in dates if re.fullmatch(r"i\d+", k)), key=num)
+        ks = [k for k in ks if num(k) >= num(a.ig_from) and not posted(k)]
+        for k, nxt in zip(ks, ks[1:]):
+            plan[k] = dates[nxt]
+        d = datetime.date.fromisoformat(dates[ks[-1]]) + datetime.timedelta(days=1)
+        while d.weekday() not in (0, 2, 4):
+            d += datetime.timedelta(days=1)
+        plan[ks[-1]] = d.isoformat()
+    for kv in a.set:
+        k, v = kv.split("=")
+        plan[k] = v
 
     for k in sorted(plan, key=lambda k: plan[k]):
         print("%-4s %s → %s" % (k, dates[k], plan[k]))
