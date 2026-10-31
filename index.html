@@ -1119,7 +1119,6 @@ dialog img{width:100%;height:auto;border-radius:18px;display:block}
       ['x', 'ig'].forEach(function (med) {
         var hit = null;
         ITEMS.forEach(function (it) {
-          if (hit) { return; }
           var isIg = it.group === 'ig';
           if ((med === 'ig') !== isIg) { return; }
           if (it.group === 'launch') { return; }
@@ -1129,7 +1128,8 @@ dialog img{width:100%;height:auto;border-radius:18px;display:block}
              2026-10-31、9/15 に削除した Day14 がここに出て、そのまま投稿された */
           var dt0 = dateOf(it.id);
           if (!dt0 || dt0 < t) { return; }
-          hit = it;
+          /* 並び順ではなく、予定日がいちばん近い回を拾う（日付をずらした回が先に出ないように） */
+          if (!hit || dt0 < dateOf(hit.id)) { hit = it; }
         });
         if (hit) { nxt.push(hit); }
       });
