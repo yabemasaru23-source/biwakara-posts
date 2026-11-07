@@ -86,9 +86,13 @@ def from_ig(code):
         raise RuntimeError("og:description が見つかりません: %s" % code)
     raw = html.unescape(m.group(1))
     # 例: 0 likes, 0 comments - biwakara_fund on September 20, 2026: "本文"
+    # 2026-11 から日本語の形にもなる: 「本文」 - 2026年11月7日、「いいね！」0件、コメント0件 - biwakara_fund
     body = ""
     q = re.search(r'&quot;(.*)&quot;|"(.*)"', raw, re.S)
-    if q:
+    jp = re.match(r'「(.*)」 - (\d{4})年(\d{1,2})月(\d{1,2})日', raw, re.S)
+    if jp:
+        body = jp.group(1)
+    elif q:
         body = q.group(1) or q.group(2) or ""
     else:
         i = raw.find(": ")
@@ -100,7 +104,9 @@ def from_ig(code):
     if dm:
         import datetime
         date = datetime.datetime.strptime(dm.group(1), "%B %d, %Y").date().isoformat()
-    lm = re.search(r"([\d,]+) likes", raw)
+    elif jp:
+        date = "%s-%02d-%02d" % (jp.group(2), int(jp.group(3)), int(jp.group(4)))
+    lm = re.search(r"([\d,]+) likes", raw) or re.search(r"「いいね！」([\d,]+)件", raw)
     return dict(media="ig", key=code,
                 url="https://www.instagram.com/p/%s/" % code,
                 text=body, date=date,
