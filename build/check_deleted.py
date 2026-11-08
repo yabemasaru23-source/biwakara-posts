@@ -68,6 +68,11 @@ def plan(st):
             print("%s(%s): 予定なし" % (label, day))
         for k in keys:
             o = find(posts, k) or {}
+            if not o and k.startswith("i"):
+                # Instagram の i31 は posts.json に id がなく、days の31番目（d31）にあたる
+                n = int(k[1:]) - 1
+                if 0 <= n < len(posts["days"]):
+                    o = posts["days"][n]
             done = st.get("items", {}).get(k, {}).get("status") == "posted"
             print("%s(%s): %s「%s」%s / check: %s" % (
                 label, day, k, o.get("theme", "?"), "（投稿済み）" if done else "",
