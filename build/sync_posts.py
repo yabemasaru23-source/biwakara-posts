@@ -106,6 +106,18 @@ def from_ig(code):
         date = datetime.datetime.strptime(dm.group(1), "%B %d, %Y").date().isoformat()
     elif jp:
         date = "%s-%02d-%02d" % (jp.group(2), int(jp.group(3)), int(jp.group(4)))
+    # og の日付は米国時間で、日本の朝の投稿が前日になる（2026-11-09 第31回で発生）。
+    # shortcode に入っている投稿時刻から日本時間の日付を出す
+    try:
+        import datetime
+        A = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
+        n = 0
+        for ch in code:
+            n = n * 64 + A.index(ch)
+        ms = (n >> 23) + 1314220021721
+        date = (datetime.datetime(1970, 1, 1) + datetime.timedelta(milliseconds=ms, hours=9)).date().isoformat()
+    except ValueError:
+        pass
     lm = re.search(r"([\d,]+) likes", raw) or re.search(r"「いいね！」([\d,]+)件", raw)
     return dict(media="ig", key=code,
                 url="https://www.instagram.com/p/%s/" % code,
