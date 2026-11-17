@@ -64,6 +64,17 @@ def main():
         if g:
             gaps.append("%d/%d %s" % (d.month, d.day, "・".join(g)))
     print("直近7日の抜け：" + ("、".join(gaps) if gaps else "なし"))
+    # 原稿の残り（2026-11-17 追加）。X の予定が今日から何日先まで途切れずに入っているか
+    xdates = {v for k, v in st.get("dates", {}).items() if re.fullmatch(r"d\d+", k)}
+    d = today
+    while d.isoformat() in xdates:
+        d += datetime.timedelta(days=1)
+    left = (d - today).days
+    last = d - datetime.timedelta(days=1)
+    msg = "X の原稿：%d/%d まで（あと%d日）" % (last.month, last.day, left)
+    if left < 10:
+        msg = "原稿切れ注意：" + msg + "。菅井様の確認か、確認不要の回で埋めること"
+    print(msg)
 
 
 if __name__ == "__main__":
