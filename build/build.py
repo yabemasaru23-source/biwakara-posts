@@ -45,7 +45,9 @@ def main():
         if name in small:
             im = im.resize((320, 320), Image.LANCZOS)
         elif name in slides:          # カルーセルの中身は下見用なので小さくてよい
-            im = im.resize((520, 520), Image.LANCZOS)
+            im = im.resize((480, 480), Image.LANCZOS)
+        elif im.width > 800:          # 表紙も下見用は 800px で足りる（2026-11-26 Artifact が 17MB になったため。原寸は images/ にある）
+            im = im.resize((800, 800), Image.LANCZOS)
         buf = io.BytesIO()
         im.save(buf, "JPEG", quality=72, optimize=True)
         b = base64.b64encode(buf.getvalue()).decode("ascii")
